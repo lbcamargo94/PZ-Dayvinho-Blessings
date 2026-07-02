@@ -16,7 +16,7 @@ DayvinhoBlessings_Main = {}
 -- ── Constantes ────────────────────────────────────────────────
 
 local ITEM_TYPE      = "Base.DayvinhoDeBolso"
-local TIMER_INTERVAL = 360    -- segundos reais (6 min real ≈ 6h in-game a 60x)
+local TIMER_INTERVAL = 1440   -- segundos reais (24 min real ≈ 1 dia in-game a 60x)
 local COOLDOWN_HOURS = 24     -- horas in-game entre bênçãos
 local TICK_INTERVAL  = 2      -- segundos entre chamadas onTick dos efeitos
 
@@ -162,7 +162,7 @@ function DayvinhoBlessings_Main.triggerCurse(player, triggerType)
     pcall(player.Say, player, DayvinhoBlessings_Messages.getCurseMsg(triggerType))
 end
 
--- ── Lógica do timer (cada 6h in-game ≈ 6 min reais a 60x) ───
+-- ── Lógica do timer (cada 1 dia in-game ≈ 24 min reais a 60x) ─
 
 local function tryTrigger(player)
     local md         = getMD(player)

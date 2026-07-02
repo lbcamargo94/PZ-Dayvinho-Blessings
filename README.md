@@ -19,7 +19,7 @@ Mantenha-o no inventário. Ele não precisa estar equipado.
 
 ### 2. Receba uma bênção a cada 6 horas
 
-A cada **6 horas in-game** (≈ 6 minutos reais na velocidade padrão), o Dayvinho verifica se uma bênção será concedida. **Sono e avanço de tempo não contam** — o timer usa o relógio real.
+A cada **1 dia in-game** (≈ 24 minutos reais na velocidade padrão), o Dayvinho verifica se uma bênção será concedida. **Sono e avanço de tempo não contam** — o timer usa o relógio real.
 
 | Etapa | Chance |
 | --- | --- |
@@ -167,7 +167,7 @@ Motor central. Roda no contexto **client**.
 | `OnTick` | Timer de 6h, processa efeitos ativos (tick/expiração) |
 | `LevelPerk` | Aplica XP bônus quando `xp_boost` está ativo |
 
-**Timer:** usa `os.time()` com intervalo de 360 segundos reais. Durante o sono, o tempo real passa devagar — o sono efetivamente não conta para o timer.
+**Timer:** usa `os.time()` com intervalo de 1440 segundos reais (1 dia in-game a 60x). Durante o sono, o tempo real passa devagar — o sono efetivamente não conta para o timer.
 
 **Efeitos ativos:** tabela `_activeEffects` com lifecycle `{id, kind, endTime, onTick, onRemove, data}`. Bênçãos e maldições coexistem.
 
