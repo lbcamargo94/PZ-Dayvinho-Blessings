@@ -2,7 +2,7 @@ module Base
 {
     item DayvinhoDeBolso
     {
-        DisplayName                 = Dayvinho de Bolso,
+        DisplayName                 = Pocket Dayvinho,
         Type                        = Normal,
         Weight                      = 0.1,
         Icon                        = LawnGnome,

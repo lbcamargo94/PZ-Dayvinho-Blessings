@@ -1,88 +1,89 @@
 -- ============================================================
---  Messages.lua — Mensagens motivacionais por habilidade
+--  Messages.lua — Chaves de tradução por habilidade (getText)
 -- ============================================================
 
 DayvinhoBlessings_Messages = {}
 
-local _messages = {
+-- Chaves por categoria: valores são os IDs em UI.json/Translate
+local _keys = {
     Fishing = {
-        "Dayvinho sussurra: 'Os peixes não resistem a você!'",
-        "Com Dayvinho ao seu lado, o rio revela seus segredos.",
-        "Dayvinho abençoa seu anzol com sorte divina!",
-        "Os peixes sentem a presença de Dayvinho e se rendem.",
+        "UI_DayBless_Fishing_1",
+        "UI_DayBless_Fishing_2",
+        "UI_DayBless_Fishing_3",
+        "UI_DayBless_Fishing_4",
     },
     Woodwork = {
-        "Dayvinho guia suas mãos: 'Construa com fé!'",
-        "A madeira cede à sabedoria de Dayvinho!",
-        "Cada corte, uma bênção. Cada tábua, um milagre.",
-        "Dayvinho aprova sua carpintaria. Continue!",
+        "UI_DayBless_Woodwork_1",
+        "UI_DayBless_Woodwork_2",
+        "UI_DayBless_Woodwork_3",
+        "UI_DayBless_Woodwork_4",
     },
     Farming = {
-        "Dayvinho abençoa a terra. A colheita será farta!",
-        "Com fé e adubo, tudo cresce. Dayvinho aprova!",
-        "A plantação prospera sob os olhares de Dayvinho.",
-        "Dayvinho sussurra: 'A terra te nutre. Nutra-a de volta.'",
+        "UI_DayBless_Farming_1",
+        "UI_DayBless_Farming_2",
+        "UI_DayBless_Farming_3",
+        "UI_DayBless_Farming_4",
     },
     Mechanics = {
-        "Dayvinho murmurou: 'Aperte mais um pouco...'",
-        "Mecanismos complexos? Não para um abençoado por Dayvinho!",
-        "Os motores cantam quando Dayvinho está presente.",
-        "Dayvinho ilumina cada parafuso, cada engrenagem.",
+        "UI_DayBless_Mechanics_1",
+        "UI_DayBless_Mechanics_2",
+        "UI_DayBless_Mechanics_3",
+        "UI_DayBless_Mechanics_4",
     },
     MetalWelding = {
-        "O fogo da forja brilha mais com a bênção de Dayvinho!",
-        "Dayvinho sussurra: 'O metal obedece ao verdadeiro mestre.'",
-        "Cada solda, uma obra de arte abençoada.",
-        "Dayvinho aprecia quem domina o fogo e o aço.",
+        "UI_DayBless_MetalWelding_1",
+        "UI_DayBless_MetalWelding_2",
+        "UI_DayBless_MetalWelding_3",
+        "UI_DayBless_MetalWelding_4",
     },
     Maintenance = {
-        "Dayvinho cuida das suas ferramentas como você cuida dele!",
-        "Equipamentos duram mais sob a proteção de Dayvinho.",
-        "Com Dayvinho, nada se desgasta... por enquanto.",
-        "Dayvinho sussurra: 'Cuide bem do que você tem.'",
+        "UI_DayBless_Maintenance_1",
+        "UI_DayBless_Maintenance_2",
+        "UI_DayBless_Maintenance_3",
+        "UI_DayBless_Maintenance_4",
     },
     Cooking = {
-        "Dayvinho aprova! Um toque de fé no tempero.",
-        "Os mortos-vivos não resistem ao aroma desta receita abençoada.",
-        "Cozinhar é uma arte. Com Dayvinho, é um milagre.",
-        "Dayvinho lhe ensina o tempero secreto da sobrevivência.",
+        "UI_DayBless_Cooking_1",
+        "UI_DayBless_Cooking_2",
+        "UI_DayBless_Cooking_3",
+        "UI_DayBless_Cooking_4",
     },
     Tailoring = {
-        "Dayvinho alinha cada ponto com precisão divina!",
-        "Roupas feitas com fé duram mais que qualquer tecido.",
-        "As agulhas dançam com a bênção de Dayvinho!",
-        "Dayvinho sussurra: 'Vista-se para sobreviver.'",
+        "UI_DayBless_Tailoring_1",
+        "UI_DayBless_Tailoring_2",
+        "UI_DayBless_Tailoring_3",
+        "UI_DayBless_Tailoring_4",
     },
     Legendary = {
-        "BENCAO LENDARIA! Dayvinho sorri para voce, escolhido!",
-        "Dayvinho concedeu sua graca maxima! Aproveite bem!",
-        "Uma bencao lendaria! Dayvinho escolheu voce hoje!",
+        "UI_DayBless_Legendary_1",
+        "UI_DayBless_Legendary_2",
+        "UI_DayBless_Legendary_3",
     },
     Generic = {
-        "Dayvinho sorriu para voce. Sinta a bencao!",
-        "Um calor suave emana do Dayvinho de Bolso...",
-        "Dayvinho sussurra palavras de encorajamento.",
-        "A sorte esta do seu lado por alguns momentos!",
-        "Dayvinho acredita em voce. Hora de brilhar!",
+        "UI_DayBless_Generic_1",
+        "UI_DayBless_Generic_2",
+        "UI_DayBless_Generic_3",
+        "UI_DayBless_Generic_4",
+        "UI_DayBless_Generic_5",
     },
     End = {
-        "A bencao de Dayvinho se dissipou...",
-        "Dayvinho descansou. Ate a proxima bencao.",
-        "O poder de Dayvinho retornou ao bolicho.",
+        "UI_DayBless_End_1",
+        "UI_DayBless_End_2",
+        "UI_DayBless_End_3",
     },
 }
 
 function DayvinhoBlessings_Messages.getForSkill(skillType)
-    local list = _messages[skillType] or _messages.Generic
-    return list[math.random(#list)]
+    local list = _keys[skillType] or _keys.Generic
+    return getText(list[math.random(#list)])
 end
 
 function DayvinhoBlessings_Messages.getLegendary()
-    local list = _messages.Legendary
-    return list[math.random(#list)]
+    local list = _keys.Legendary
+    return getText(list[math.random(#list)])
 end
 
 function DayvinhoBlessings_Messages.getEnd()
-    local list = _messages.End
-    return list[math.random(#list)]
+    local list = _keys.End
+    return getText(list[math.random(#list)])
 end
