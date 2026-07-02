@@ -1,6 +1,6 @@
 -- ============================================================
 --  Distributions.lua — Spawn do Dayvinho de Bolso no mundo
---  Muito Raro: ~0.1% por container elegível (quartos, lojas)
+--  Raro: ~1% por container elegível (quartos, lojas)
 -- ============================================================
 
 local ITEM_TYPE    = "Base.DayvinhoDeBolso"
