@@ -159,6 +159,8 @@ Hook em `OnFillContainer`. Verifica cômodo e container elegíveis; rola **1%** 
 
 ### `Messages.lua`
 Tabela de chaves `UI_DayBless_*` e `UI_DayCurse_*`. Expõe:
+
+- `getGreeting()` — mensagem de boas-vindas ao pegar o item pela primeira vez na sessão
 - `getForBlessing(id)` — mensagem aleatória para o tipo de bênção
 - `getFail()` — mensagem de falha do timer
 - `getEnd()` — mensagem de expiração de bênção
@@ -227,3 +229,4 @@ Arquivos JSON no formato padrão do PZ B42. Idiomas sem arquivo próprio recebem
 | `v2.0.8` | Fix crítico: `next()` não disponível no Kahlua do PZ → substituído por check com `pairs` no rebuild do cache de perks |
 | `v2.0.9` | Fix crítico: `math.random()` não existe no contexto server do PZ → substituído por `ZombRandFloat(0,1)` em `Distributions.lua` (o `OnFillContainer` roda server-side) |
 | `v2.1.0` | Fix abrangente de compatibilidade com o Kahlua do PZ: `math.random()` → `ZombRandFloat`/`ZombRand` em todos os scripts client; `os.time()` → `getTimeInMillis()/1000`; `GameTime.getInstance()` → `getGameTime()` |
+| `v2.1.1` | Fix gameplay: maldição agora dispara via opção "Descartar" no menu de contexto do inventário (`OnFillInventoryObjectContextMenu`); mensagem de boas-vindas adicionada ao pegar o item pela primeira vez na sessão |

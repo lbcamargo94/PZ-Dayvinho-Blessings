@@ -34,6 +34,7 @@ local _perkCache       = {}   -- typeString → Perks enum (para addXP)
 local _lastTriggerTime = 0
 local _lastTickTime    = 0
 local _initialized     = false
+local _hadDayvinho     = false
 
 -- ── Helpers ───────────────────────────────────────────────────
 
@@ -220,6 +221,7 @@ local function onGameStart()
     _lastTriggerTime = now()
     _lastTickTime    = now()
     _initialized     = false
+    _hadDayvinho     = false
 
     local ok, result = pcall(buildPerkCache)
     if ok and result then
@@ -256,7 +258,12 @@ local function onTick()
         end
     end
 
-    if not playerHasDayvinho(player) then
+    local hasDayvinho = playerHasDayvinho(player)
+    if hasDayvinho and not _hadDayvinho then
+        pcall(player.Say, player, DayvinhoBlessings_Messages.getGreeting())
+    end
+    _hadDayvinho = hasDayvinho
+    if not hasDayvinho then
         if #_activeEffects > 0 then clearAllEffects(player) end
         return
     end

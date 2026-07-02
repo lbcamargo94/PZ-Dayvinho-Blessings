@@ -9,6 +9,9 @@ DayvinhoBlessings_Messages = {}
 
 -- Tabela de chaves: categoria → lista de chaves UI_*
 local _keys = {
+    -- ── Primeiro pickup (mensagem de boas-vindas) ─────────────
+    Found = { "UI_DayBless_Found_1","UI_DayBless_Found_2","UI_DayBless_Found_3","UI_DayBless_Found_4" },
+
     -- ── Falha da rolagem (50% miss) ───────────────────────────
     Fail = { "UI_DayBless_Fail_1","UI_DayBless_Fail_2","UI_DayBless_Fail_3","UI_DayBless_Fail_4" },
 
@@ -74,4 +77,8 @@ end
 
 function DayvinhoBlessings_Messages.getCurseEnd()
     return pick(_keys.CurseEnd)
+end
+
+function DayvinhoBlessings_Messages.getGreeting()
+    return pick(_keys.Found)
 end

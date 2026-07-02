@@ -155,5 +155,12 @@
 
     "UI_DayCurse_End_1": "A maldição de Dayvinho se levanta... desta vez.",
     "UI_DayCurse_End_2": "O anão cruza os braços. A maldição foi cumprida.",
-    "UI_DayCurse_End_3": "Dayvinho solta um suspiro. A escuridão some."
+    "UI_DayCurse_End_3": "Dayvinho solta um suspiro. A escuridão some.",
+
+    "UI_DayBless_Found_1": "Algo pequeno e determinado se acomoda no seu bolso. Dayvinho sorri.",
+    "UI_DayBless_Found_2": "Dayvinho pisca para você. Bênçãos estão chegando, sobrevivente.",
+    "UI_DayBless_Found_3": "O anãozinho se instala confortavelmente. Uma sorte estranha segue esse ser.",
+    "UI_DayBless_Found_4": "Você encontrou o Dayvinho de Bolso! Ele parece satisfeito. Por enquanto.",
+
+    "UI_DayCurse_DiscardLabel": "Descartar (Dayvinho vai à fúria!)"
 }

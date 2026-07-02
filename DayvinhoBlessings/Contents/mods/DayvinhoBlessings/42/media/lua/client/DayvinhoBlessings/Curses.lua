@@ -204,8 +204,8 @@ local function wrapDestructiveOptions(context, player)
 end
 
 -- ── Hook no menu de contexto de objetos no mundo ─────────────
--- OnFillWorldObjectContextMenu inclui opções Burn/Destroy que
--- OnFillInventoryObjectContextMenu não possui no B42.
+-- OnFillWorldObjectContextMenu inclui opções Burn/Destroy/Explode/RunOver
+-- que não aparecem no menu de inventário.
 
 local function onContextMenu(playerNum, context, worldobjects, test)
     local player
@@ -220,9 +220,62 @@ local function onContextMenu(playerNum, context, worldobjects, test)
     pcall(wrapDestructiveOptions, context, player)
 end
 
--- Registra apenas uma vez
 if not DayvinhoBlessings_Curses._contextMenuRegistered then
     Events.OnFillWorldObjectContextMenu.Add(onContextMenu)
     DayvinhoBlessings_Curses._contextMenuRegistered = true
     Log.info("hook OnFillWorldObjectContextMenu registrado")
+end
+
+-- ── Hook no menu de contexto do inventário (Descartar Dayvinho) ─
+-- OnFillInventoryObjectContextMenu(playerNum, context, items)
+-- Adiciona opção "Descartar" que remove o item e dispara maldição.
+
+local function onDiscardDayvinho(playerNum, dayvinhoItem)
+    local player
+    if type(playerNum) == "number" then
+        player = getSpecificPlayer(playerNum)
+    else
+        player = playerNum
+    end
+    if not player then return end
+
+    pcall(function()
+        player:getInventory():Remove(dayvinhoItem)
+    end)
+
+    if DayvinhoBlessings_Main then
+        DayvinhoBlessings_Main.triggerCurse(player, "trash")
+    end
+end
+
+local function onInventoryContextMenu(playerNum, context, items)
+    local player
+    if type(playerNum) == "number" then
+        player = getSpecificPlayer(playerNum)
+    else
+        player = playerNum
+    end
+    if not player then return end
+    if not playerHasDayvinho(player) then return end
+
+    local dayvinhoItem = nil
+    pcall(function()
+        local actual = ISInventoryPane.getActualItems(items)
+        for _, item in ipairs(actual) do
+            if item:getFullType() == ITEM_TYPE then
+                dayvinhoItem = item
+                break
+            end
+        end
+    end)
+    if not dayvinhoItem then return end
+
+    Log.debug("opcao Descartar do Dayvinho adicionada ao menu de inventario")
+    context:addOption(getText("UI_DayCurse_DiscardLabel"), playerNum, onDiscardDayvinho, dayvinhoItem)
+end
+
+if not DayvinhoBlessings_Curses._inventoryMenuRegistered then
+    Events.OnFillInventoryObjectContextMenu.Add(onInventoryContextMenu)
+    DayvinhoBlessings_Curses._inventoryMenuRegistered = true
+    Log.info("hook OnFillInventoryObjectContextMenu registrado")
 end

@@ -155,5 +155,12 @@
 
     "UI_DayCurse_End_1": "Dayvinho's curse lifts... this time.",
     "UI_DayCurse_End_2": "The gnome crosses his arms. The curse is spent.",
-    "UI_DayCurse_End_3": "Dayvinho exhales slowly. The darkness fades."
+    "UI_DayCurse_End_3": "Dayvinho exhales slowly. The darkness fades.",
+
+    "UI_DayBless_Found_1": "Something small and determined settles into your pocket. Dayvinho grins.",
+    "UI_DayBless_Found_2": "Dayvinho winks at you. Blessings are incoming, survivor.",
+    "UI_DayBless_Found_3": "The little gnome makes himself at home. Strange luck follows this one.",
+    "UI_DayBless_Found_4": "You found Dayvinho de Bolso! He seems pleased. For now.",
+
+    "UI_DayCurse_DiscardLabel": "Discard (Dayvinho rage!)"
 }
