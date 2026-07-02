@@ -154,7 +154,7 @@ Tabela de chaves `UI_DayBless_*` e `UI_DayCurse_*`. Expõe:
 Define os 24 tipos de bênção em uma tabela com peso, duração e funções `apply / onTick / onRemove`. Expõe `pickRandom()` (seleção ponderada) e `getDef(id)`.
 
 ### `Curses.lua`
-Define os 9 efeitos de maldição. Registra `OnFillInventoryObjectContextMenu` para detectar as 5 ações proibidas no menu de contexto e acionar `DayvinhoBlessings_Main.triggerCurse()`.
+Define os 9 efeitos de maldição. Registra `OnFillWorldObjectContextMenu` para detectar as 5 ações proibidas no menu de contexto e acionar `DayvinhoBlessings_Main.triggerCurse()`.
 
 ### `Main.lua`
 Motor central. Roda no contexto **client**.
@@ -205,3 +205,4 @@ Arquivos JSON no formato padrão do PZ B42. Idiomas sem arquivo próprio recebem
 | `v2.0.1` | XP Boost agora afeta apenas 1 habilidade sorteada (não todas as 35) |
 | `v2.0.2` | Timer ajustado de 6h → 1 dia in-game (1440s reais) |
 | `v2.0.3` | API de stats migrada B41→B42 (CharacterStat enum); hook de maldições corrigido para `OnFillWorldObjectContextMenu` |
+| `v2.0.4` | XP Boost corrigido: cache de perks usa `Perks.getMaxIndex()` com loop seguro; handler `LevelPerk` usa `tostring(perk)` para match do cache; XP aplicado via `player:getXp():AddXP()` (B42) |
