@@ -5,6 +5,11 @@
 --    OnGameStart  → inicializa estado, constrói cache de perks
 --    OnTick       → processa efeitos ativos; dispara timer a cada 1 dia in-game
 --    LevelPerk    → aplica bônus de XP quando xp_boost está ativo
+--
+--  APIs do PZ (Kahlua) — NÃO disponíveis:
+--    math.random()  → ZombRandFloat(0, 1)
+--    math.random(n) → ZombRand(n) + 1
+--    os.time()      → math.floor(getTimeInMillis() / 1000)
 -- ============================================================
 
 require "DayvinhoBlessings/Logger"
@@ -30,6 +35,12 @@ local _lastTriggerTime = 0
 local _lastTickTime    = 0
 local _initialized     = false
 
+-- ── Helpers ───────────────────────────────────────────────────
+
+local function now()
+    return math.floor(getTimeInMillis() / 1000)
+end
+
 -- ── ModData ───────────────────────────────────────────────────
 
 local MD_KEY = "DayvinhoBlessings"
@@ -44,7 +55,6 @@ end
 
 local function buildPerkCache()
     local cache = {}
-    -- Perks.getMaxIndex() dá o limite seguro; fromIndex é 0-based
     local ok0, maxIdx = pcall(function() return Perks.getMaxIndex() end)
     if not ok0 or not maxIdx then return cache end
     for i = 0, maxIdx - 1 do
@@ -52,8 +62,6 @@ local function buildPerkCache()
         if not ok1 or pe == nil then break end
         local ok2, perk = pcall(function() return PerkFactory.getPerk(pe) end)
         if ok2 and perk then
-            -- Filtra perks-raiz (categorias como Agility, Crafting, etc.) que
-            -- nunca recebem XP diretamente — parent == Perks.None os identifica
             local ok3, parent = pcall(function() return perk:getParent() end)
             if ok3 and parent ~= Perks.None then
                 local ok4, typeStr = pcall(function() return tostring(pe) end)
@@ -72,7 +80,7 @@ local function pickRandomPerkType()
     local keys = {}
     for k in pairs(_perkCache) do keys[#keys + 1] = k end
     if #keys == 0 then return nil end
-    return keys[math.random(#keys)]
+    return keys[ZombRand(#keys) + 1]
 end
 
 -- ── Verificação de posse do item ──────────────────────────────
@@ -88,7 +96,7 @@ end
 
 local function addEffect(id, kind, durationSecs, def, player, data)
     local endTime = (durationSecs and durationSecs > 0)
-        and (os.time() + durationSecs) or nil
+        and (now() + durationSecs) or nil
     _activeEffects[#_activeEffects + 1] = {
         id       = id,
         kind     = kind,
@@ -113,11 +121,11 @@ local function clearAllEffects(player)
     end
 end
 
-local function tickEffects(player, now)
+local function tickEffects(player, t)
     local i = #_activeEffects
     while i >= 1 do
         local eff = _activeEffects[i]
-        if eff.endTime and now >= eff.endTime then
+        if eff.endTime and t >= eff.endTime then
             if eff.kind == "blessing" then
                 pcall(player.Say, player, DayvinhoBlessings_Messages.getEnd())
             elseif eff.kind == "curse" then
@@ -143,7 +151,6 @@ local function applyBlessing(player, blessingId, isLegendary)
     local data = {}
     pcall(def.apply, player, isLegendary, data)
 
-    -- XP Boost: sorteia UMA habilidade aleatória para receber o bônus
     if blessingId == "xp_boost" then
         data.perkType = pickRandomPerkType()
         Log.debug("xp_boost: habilidade sorteada = " .. tostring(data.perkType))
@@ -186,22 +193,21 @@ end
 
 local function tryTrigger(player)
     local md         = getMD(player)
-    local worldHours = GameTime.getInstance():getWorldAgeHours()
+    local worldHours = getGameTime():getWorldAgeHours()
 
     local nextAllowed = md.nextBlessingWorldHours or 0
     if worldHours < nextAllowed then return end
 
     -- 50% de chance de falhar
-    if math.random() < 0.50 then
+    if ZombRandFloat(0, 1) < 0.50 then
         pcall(player.Say, player, DayvinhoBlessings_Messages.getFail())
         return
     end
 
     -- 5% lendária, 95% normal
-    local isLegendary = math.random() < 0.05
+    local isLegendary = ZombRandFloat(0, 1) < 0.05
     local blessingId  = DayvinhoBlessings_Blessings.pickRandom()
 
-    -- Aplica cooldown de 24h in-game
     md.nextBlessingWorldHours = worldHours + COOLDOWN_HOURS
 
     applyBlessing(player, blessingId, isLegendary)
@@ -211,8 +217,8 @@ end
 
 local function onGameStart()
     _activeEffects   = {}
-    _lastTriggerTime = os.time()
-    _lastTickTime    = os.time()
+    _lastTriggerTime = now()
+    _lastTickTime    = now()
     _initialized     = false
 
     local ok, result = pcall(buildPerkCache)
@@ -234,11 +240,10 @@ local function onTick()
     local player = getPlayer()
     if not player then return end
 
-    -- Reconstrói cache de perks se vazio (falhou no onGameStart)
-    -- next() não está disponível no Kahlua do PZ; usa pairs para checar vazio
-    local _cacheIsEmpty = true
-    for _ in pairs(_perkCache) do _cacheIsEmpty = false; break end
-    if _cacheIsEmpty then
+    -- Reconstrói cache de perks se vazio (next() não existe no Kahlua)
+    local cacheIsEmpty = true
+    for _ in pairs(_perkCache) do cacheIsEmpty = false; break end
+    if cacheIsEmpty then
         Log.warn("cache de perks vazio — reconstruindo")
         local ok, result = pcall(buildPerkCache)
         if ok and result then
@@ -256,15 +261,15 @@ local function onTick()
         return
     end
 
-    local now = os.time()
+    local t = now()
 
-    if now - _lastTickTime >= TICK_INTERVAL then
-        _lastTickTime = now
-        tickEffects(player, now)
+    if t - _lastTickTime >= TICK_INTERVAL then
+        _lastTickTime = t
+        tickEffects(player, t)
     end
 
-    if now - _lastTriggerTime >= TIMER_INTERVAL then
-        _lastTriggerTime = now
+    if t - _lastTriggerTime >= TIMER_INTERVAL then
+        _lastTriggerTime = t
         tryTrigger(player)
     end
 end
@@ -274,12 +279,9 @@ local function onLevelPerk(player, perk)
     if not player or not perk then return end
     if not playerHasDayvinho(player) then return end
 
-    -- LevelPerk passa o enum Perks.X diretamente (não um Perk object),
-    -- então tostring(perk) dá a string usada como chave no cache
     local ok, typeStr = pcall(function() return tostring(perk) end)
     if not ok or not typeStr then return end
 
-    -- Verifica se xp_boost está ativo E se esta é a habilidade sorteada
     local mult = 0
     for _, eff in ipairs(_activeEffects) do
         if eff.id == "xp_boost" and eff.kind == "blessing" and eff.data then
@@ -296,7 +298,6 @@ local function onLevelPerk(player, perk)
 
     local level  = player:getPerkLevel(perkEnum) or 1
     local xpGain = math.max(1, math.floor(level * 75 * mult))
-    -- B42: player:addXP() não existe; a API correta é player:getXp():AddXP()
     local xpOk = Log.try(function() player:getXp():AddXP(perkEnum, xpGain) end, "onLevelPerk.AddXP")
     if xpOk then
         Log.debug(string.format("xp_boost: +%d xp em %s (nivel %d, mult %.0f%%)",

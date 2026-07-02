@@ -136,7 +136,7 @@ function DayvinhoBlessings_Curses.getDef(id)
 end
 
 function DayvinhoBlessings_Curses.pickRandomEffect()
-    return _effectIds[math.random(#_effectIds)]
+    return _effectIds[ZombRand(#_effectIds) + 1]
 end
 
 function DayvinhoBlessings_Curses.getDuration()

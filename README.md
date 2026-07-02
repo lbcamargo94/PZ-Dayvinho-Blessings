@@ -226,3 +226,4 @@ Arquivos JSON no formato padrão do PZ B42. Idiomas sem arquivo próprio recebem
 | `v2.0.7` | Reorganização da estrutura do projeto: mod movido para `DayvinhoBlessings/` (padrão Workshop); `poster.png` adicionado ao `mod.info` |
 | `v2.0.8` | Fix crítico: `next()` não disponível no Kahlua do PZ → substituído por check com `pairs` no rebuild do cache de perks |
 | `v2.0.9` | Fix crítico: `math.random()` não existe no contexto server do PZ → substituído por `ZombRandFloat(0,1)` em `Distributions.lua` (o `OnFillContainer` roda server-side) |
+| `v2.1.0` | Fix abrangente de compatibilidade com o Kahlua do PZ: `math.random()` → `ZombRandFloat`/`ZombRand` em todos os scripts client; `os.time()` → `getTimeInMillis()/1000`; `GameTime.getInstance()` → `getGameTime()` |

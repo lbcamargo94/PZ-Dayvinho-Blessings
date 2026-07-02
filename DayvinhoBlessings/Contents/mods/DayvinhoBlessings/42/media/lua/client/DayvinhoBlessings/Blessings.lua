@@ -89,10 +89,10 @@ local DEFS = {
     gift = {
         weight = 5, duration = 0,
         apply = function(player, legendary, data)
-            local itemType = GIFT_ITEMS[math.random(#GIFT_ITEMS)]
+            local itemType = GIFT_ITEMS[ZombRand(#GIFT_ITEMS) + 1]
             if legendary then
                 pcall(function() player:getInventory():AddItem(itemType) end)
-                local extra = GIFT_ITEMS[math.random(#GIFT_ITEMS)]
+                local extra = GIFT_ITEMS[ZombRand(#GIFT_ITEMS) + 1]
                 pcall(function() player:getInventory():AddItem(extra) end)
             else
                 pcall(function() player:getInventory():AddItem(itemType) end)
@@ -371,7 +371,7 @@ do
 end
 
 function DayvinhoBlessings_Blessings.pickRandom()
-    local roll = math.random() * _totalWeight
+    local roll = ZombRandFloat(0, 1) * _totalWeight
     local acc  = 0
     for id, def in pairs(DEFS) do
         acc = acc + def.weight

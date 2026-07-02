@@ -53,7 +53,7 @@ local _keys = {
 }
 
 local function pick(list)
-    return getText(list[math.random(#list)])
+    return getText(list[ZombRand(#list) + 1])
 end
 
 function DayvinhoBlessings_Messages.getForBlessing(blessingId)
