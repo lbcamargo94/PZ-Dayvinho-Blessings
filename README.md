@@ -109,31 +109,35 @@ Se o jogador tiver o Dayvinho no inventário e executar uma das **5 ações proi
 ## Estrutura do projeto
 
 ```
-Contents/mods/DayvinhoBlessings/42/
-├── mod.info
-└── media/
-    ├── scripts/
-    │   └── items_dayvinho.txt          — definição do item
-    └── lua/
-        ├── shared/
-        │   ├── DayvinhoBlessings/
-        │   │   ├── Logger.lua          — sistema de logs do mod (INFO/WARN/ERROR/DEBUG)
-        │   │   └── Distributions.lua   — spawn do item no mundo (1%)
-        │   └── Translate/
-        │       ├── EN/
-        │       │   ├── ItemName.json   — nome em inglês
-        │       │   ├── Tooltip.json    — tooltip em inglês
-        │       │   └── UI.json         — ~120 chaves de mensagem
-        │       └── PTBR/
-        │           ├── ItemName.json   — nome em português
-        │           ├── Tooltip.json    — tooltip em português
-        │           └── UI.json         — ~120 chaves em português
-        └── client/
-            └── DayvinhoBlessings/
-                ├── Messages.lua        — tabela de chaves e funções getText
-                ├── Blessings.lua       — 24 tipos de bênção (apply/tick/remove)
-                ├── Curses.lua          — 9 efeitos de maldição + hook de menu
-                └── Main.lua            — motor de timer, efeitos e eventos
+DayvinhoBlessings/
+├── workshop.txt                        — metadados para publicação na Steam Workshop
+├── preview.png                         — imagem de capa do Workshop (256×256)
+└── Contents/mods/DayvinhoBlessings/42/
+    ├── mod.info
+    ├── poster.png                      — imagem exibida no menu de mods do jogo
+    └── media/
+        ├── scripts/
+        │   └── items_dayvinho.txt      — definição do item
+        └── lua/
+            ├── shared/
+            │   ├── DayvinhoBlessings/
+            │   │   ├── Logger.lua      — sistema de logs do mod (INFO/WARN/ERROR/DEBUG)
+            │   │   └── Distributions.lua — spawn do item no mundo (1%)
+            │   └── Translate/
+            │       ├── EN/
+            │       │   ├── ItemName.json — nome em inglês
+            │       │   ├── Tooltip.json  — tooltip em inglês
+            │       │   └── UI.json       — ~120 chaves de mensagem
+            │       └── PTBR/
+            │           ├── ItemName.json — nome em português
+            │           ├── Tooltip.json  — tooltip em português
+            │           └── UI.json       — ~120 chaves em português
+            └── client/
+                └── DayvinhoBlessings/
+                    ├── Messages.lua    — tabela de chaves e funções getText
+                    ├── Blessings.lua   — 24 tipos de bênção (apply/tick/remove)
+                    ├── Curses.lua      — 9 efeitos de maldição + hook de menu
+                    └── Main.lua        — motor de timer, efeitos e eventos
 ```
 
 ---
@@ -219,3 +223,4 @@ Arquivos JSON no formato padrão do PZ B42. Idiomas sem arquivo próprio recebem
 | `v2.0.4` | XP Boost corrigido: cache de perks usa `Perks.getMaxIndex()` com loop seguro; handler `LevelPerk` usa `tostring(perk)` para match do cache; XP aplicado via `player:getXp():AddXP()` (B42) |
 | `v2.0.5` | Sistema de logs exclusivo do mod: `Logger.lua` com níveis INFO/WARN/ERROR/DEBUG, prefixo `[DayvinhoBlessings]`, wrapper `Log.try()` para pcall com log automático de erros |
 | `v2.0.6` | Compatibilidade B42.19: `containsType` → `containsTypeRecurse` (crítico); `sun`: `climate:isRaining/stopRaining` → `RainManager`; `backpack`: `setMaxWeight` (inexistente em B42) → surrogate DISCOMFORT |
+| `v2.0.7` | Reorganização da estrutura do projeto: mod movido para `DayvinhoBlessings/` (padrão Workshop); `poster.png` adicionado ao `mod.info` |
