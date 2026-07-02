@@ -1,0 +1,12 @@
+module Base
+{
+    item DayvinhoDeBollo
+    {
+        DisplayName                 = Dayvinho de Bolso,
+        Type                        = Normal,
+        Weight                      = 0.1,
+        Icon                        = KeyRing,
+        CanStack                    = FALSE,
+        Tooltip                     = Tooltip_DayvinhoDeBolso,
+    }
+}
