@@ -1,11 +1,13 @@
 -- ============================================================
---  HUD.lua — Overlay movel com bencao/maldicao ativa
+--  HUD.lua — Overlay movel listando todos os efeitos ativos
 --
---  Arrastar: segurar e mover o painel (quando desbloqueado)
---  Redimensionar: arrastar o canto inferior direito (handle)
---  Fixar/soltar: clique direito alterna o modo de bloqueio
+--  Arrastar: click e mover (quando desbloqueado)
+--  Resize: arrastar handle no canto inferior direito (largura)
+--  Fechar: botao [X] no cabecalho
+--  Reabrir: botao direito em item do inventario → "Mostrar HUD"
+--  Fixar/soltar: botao direito NO PAINEL alterna lock
 --
---  Posicao e tamanho persistidos em player:getModData()
+--  Posicao, largura, lock e visibilidade salvos em ModData
 -- ============================================================
 
 require "DayvinhoBlessings/Logger"
@@ -47,33 +49,78 @@ local DISPLAY_NAMES = {
     unhappiness_up = "Infelicidade",
     stress_up      = "Estresse",
     hallucination  = "Alucinacao",
+    _expired       = "Efeito Encerrado",
 }
 
--- ── Constantes ────────────────────────────────────────────────
+-- ── Descricoes detalhadas ─────────────────────────────────────
+
+local DESCRIPTIONS = {
+    -- Bencoes
+    xp_boost       = "+10% XP ganho em 1 habilidade sorteada",
+    luck           = "+10 de Luck enquanto ativo",
+    foraging       = "Raio de coleta aumentado em 15%",
+    gift           = "Item bonus no inventario",
+    full_belly     = "Reduz fome gradualmente ao longo do tempo",
+    fresh_water    = "Reduz sede em 50% imediatamente",
+    rest           = "Reduz fadiga em 15% imediatamente",
+    spirit         = "Reduz estresse e tedio gradualmente",
+    good_mood      = "Reduz infelicidade em 25% imediatamente",
+    inner_peace    = "Reduz estresse em 30% imediatamente",
+    calm_sleep     = "Proximo sono sera mais reparador",
+    skilled_hands  = "Velocidade de acao +10% enquanto ativo",
+    fisherman      = "Multiplicador de pesca +10% enquanto ativo",
+    harvest        = "Plantas crescem mais rapido + bonus de espirito",
+    lumberjack     = "Mais toras por corte + bonus de endurance",
+    light_steps    = "Menos ruido ao se mover enquanto ativo",
+    sharp_eyes     = "Raio de coleta +12% enquanto ativo",
+    instinct       = "Reduz panico em 10% imediatamente",
+    backpack       = "Reduz desconforto de carga gradualmente",
+    natural_heal   = "Recuperacao de ferimentos gradual",
+    resistant      = "Restaura endurance gradualmente",
+    courage        = "Reduz panico gradualmente ao longo do tempo",
+    sun            = "Para a chuva imediatamente",
+    rainbow        = "Reduz infelicidade levemente",
+    -- Maldicoes
+    bad_luck       = "Reduz Morale (surrogate de Luck) em 10%",
+    panic_faster   = "Panico aumenta gradualmente a cada tick",
+    hunger_up      = "+20% de fome imediata",
+    thirst_up      = "+20% de sede imediata",
+    endurance_down = "-10% de endurance imediata",
+    more_noise     = "Panico aumenta gradualmente (ruido extra)",
+    unhappiness_up = "+20% de infelicidade imediata",
+    stress_up      = "+15% de estresse imediato",
+    hallucination  = "Infelicidade leve + mensagem narrativa",
+    -- Notificacao de expiração
+    _expired       = "O efeito acabou de se encerrar",
+}
+
+-- ── Constantes de layout ──────────────────────────────────────
 
 local MD_KEY    = "DayvinhoBlessings"
 local DEFAULT_X = 10
 local DEFAULT_Y = 50
-local DEFAULT_W = 240
-local DEFAULT_H = 68
-local MIN_W     = 180
-local MIN_H     = 56
-local HANDLE    = 12   -- tamanho em px do canto de redimensionamento
+local DEFAULT_W = 260
+local MIN_W     = 200
+local HEADER_H  = 26   -- altura do cabecalho (titulo + botao X)
+local ROW_H     = 54   -- altura de cada linha de efeito (3 linhas de texto)
+local FOOTER_H  = 14   -- espaco inferior para handle de resize
+local HANDLE    = 12   -- tamanho do handle de resize
 
 -- ── Classe HUD ────────────────────────────────────────────────
 
 DayvinhoBlessings_HUDPanel = ISPanel:derive("DayvinhoBlessings_HUDPanel")
 
-function DayvinhoBlessings_HUDPanel:new(x, y, w, h)
-    local o = ISPanel.new(self, x, y, w or DEFAULT_W, h or DEFAULT_H)
+function DayvinhoBlessings_HUDPanel:new(x, y, w)
+    -- Altura calculada com base no numero de efeitos (minimo 1 linha)
+    local h = HEADER_H + ROW_H + FOOTER_H
+    local o = ISPanel.new(self, x, y, w or DEFAULT_W, h)
     setmetatable(o, self)
     self.__index      = self
-    o.backgroundColor = { r=0.05, g=0.05, b=0.05, a=0.78 }
-    o.borderColor     = { r=0.75, g=0.55, b=0.10, a=1.00 }
+    o.backgroundColor = { r=0.05, g=0.05, b=0.05, a=0.82 }
+    o.borderColor     = { r=0.60, g=0.45, b=0.08, a=1.00 }
     o._moving   = false
     o._resizing = false
     o._locked   = false
-    o._lastId   = nil   -- detecta mudanca de efeito para log
     return o
 end
 
@@ -81,12 +128,24 @@ function DayvinhoBlessings_HUDPanel:initialise()
     ISPanel.initialise(self)
 end
 
--- ── Drag para mover ───────────────────────────────────────────
+-- ── Interacao com mouse ───────────────────────────────────────
 
 function DayvinhoBlessings_HUDPanel:onMouseDown(x, y)
+    local w = self:getWidth()
+
+    -- Botao [X] no cabecalho (area: x > w-26, y < HEADER_H)
+    if y < HEADER_H and x >= w - 26 then
+        self:setVisible(false)
+        self:_saveLayout()
+        Log.info("HUD fechado pelo botao X")
+        return true
+    end
+
     if self._locked then return end
     self:bringToTop()
-    local w, h = self:getWidth(), self:getHeight()
+
+    local h = self:getHeight()
+    -- Handle de resize no canto inferior direito
     if x >= w - HANDLE and y >= h - HANDLE then
         self._resizing = true
         self._moving   = false
@@ -102,8 +161,8 @@ function DayvinhoBlessings_HUDPanel:onMouseMove(dx, dy)
         self:setX(self:getX() + dx)
         self:setY(self:getY() + dy)
     elseif self._resizing then
-        self:setWidth( math.max(MIN_W, self:getWidth()  + dx))
-        self:setHeight(math.max(MIN_H, self:getHeight() + dy))
+        -- Apenas largura; altura e calculada automaticamente pelo conteudo
+        self:setWidth(math.max(MIN_W, self:getWidth() + dx))
     end
 end
 
@@ -112,8 +171,7 @@ function DayvinhoBlessings_HUDPanel:onMouseMoveOutside(dx, dy)
         self:setX(self:getX() + dx)
         self:setY(self:getY() + dy)
     elseif self._resizing then
-        self:setWidth( math.max(MIN_W, self:getWidth()  + dx))
-        self:setHeight(math.max(MIN_H, self:getHeight() + dy))
+        self:setWidth(math.max(MIN_W, self:getWidth() + dx))
     end
 end
 
@@ -133,8 +191,7 @@ function DayvinhoBlessings_HUDPanel:onMouseUpOutside(x, y)
     end
 end
 
--- ── Click direito: fixar/soltar ───────────────────────────────
-
+-- Botao direito NO PAINEL: fixa/solta
 function DayvinhoBlessings_HUDPanel:onRightMouseDown(x, y)
     self._locked = not self._locked
     self:_saveLayout()
@@ -142,7 +199,7 @@ function DayvinhoBlessings_HUDPanel:onRightMouseDown(x, y)
     return true
 end
 
--- ── Persistencia de posicao/tamanho ──────────────────────────
+-- ── Persistencia ──────────────────────────────────────────────
 
 function DayvinhoBlessings_HUDPanel:_saveLayout()
     pcall(function()
@@ -150,67 +207,138 @@ function DayvinhoBlessings_HUDPanel:_saveLayout()
         if not player then return end
         local md = player:getModData()
         md[MD_KEY] = md[MD_KEY] or {}
-        md[MD_KEY].hudX      = self:getX()
-        md[MD_KEY].hudY      = self:getY()
-        md[MD_KEY].hudW      = self:getWidth()
-        md[MD_KEY].hudH      = self:getHeight()
-        md[MD_KEY].hudLocked = self._locked
+        md[MD_KEY].hudX       = self:getX()
+        md[MD_KEY].hudY       = self:getY()
+        md[MD_KEY].hudW       = self:getWidth()
+        md[MD_KEY].hudLocked  = self._locked
+        md[MD_KEY].hudVisible = self:isVisible()
     end)
 end
 
 -- ── Render ────────────────────────────────────────────────────
 
 function DayvinhoBlessings_HUDPanel:render()
-    local info = DayvinhoBlessings_Main and DayvinhoBlessings_Main.getHUDInfo()
+    local infoList = DayvinhoBlessings_Main and DayvinhoBlessings_Main.getHUDInfoAll()
+    local n = infoList and #infoList or 0
 
-    local w, h = self:getWidth(), self:getHeight()
+    local w = self:getWidth()
 
-    if not info then
-        -- Limpa explicitamente para nao deixar conteudo antigo visivel
-        -- quando o efeito encerra e outro ainda nao comecou.
-        self:drawRect(0, 0, w, h, 0, 0, 0, 0)
+    -- Ajuste automatico de altura com base no numero de efeitos
+    local targetH = HEADER_H + math.max(1, n) * ROW_H + FOOTER_H
+    if math.abs(self:getHeight() - targetH) > 1 then
+        self:setHeight(targetH)
+    end
+    local h = self:getHeight()
+
+    -- Borda: ouro se bencao dominante, vermelho se maldicao, cinza se expirado
+    local hasBlessing, hasCurse, hasExpired = false, false, false
+    if infoList then
+        for _, info in ipairs(infoList) do
+            if info.isExpired then hasExpired = true
+            elseif info.isCurse then hasCurse = true
+            else hasBlessing = true end
+        end
+    end
+    if hasCurse then
+        self.borderColor = { r=0.80, g=0.08, b=0.08, a=1 }
+    elseif hasBlessing then
+        self.borderColor = { r=0.65, g=0.48, b=0.08, a=1 }
+    else
+        self.borderColor = { r=0.40, g=0.40, b=0.40, a=1 }
+    end
+
+    ISPanel.render(self)  -- fundo + borda
+
+    -- ── Cabecalho ────────────────────────────────────────────
+
+    self:drawText("== Dayvinho ==", 8, 5, 0.75, 0.58, 0.12, 1, UIFont.Small)
+
+    -- Botao [X] fechar
+    self:drawRect(w - 24, 4, 20, 18, 0.85, 0.60, 0.10, 0.10)
+    self:drawText("X",    w - 18, 5, 1, 1, 1, 1, UIFont.Small)
+
+    -- Indicador de lock
+    if self._locked then
+        self:drawText("[F]", w - 52, 5, 0.45, 0.45, 0.45, 0.8, UIFont.Small)
+    end
+
+    -- Linha separadora do cabecalho
+    self:drawRect(0, HEADER_H - 2, w, 1, 0.6, 0.35, 0.25, 0.08, 0.08)
+
+    -- ── Linha "nenhum efeito" ─────────────────────────────────
+
+    if n == 0 then
+        self:drawText("Nenhum efeito ativo", 8, HEADER_H + 18, 0.38, 0.38, 0.38, 1, UIFont.Small)
+        -- Handle de resize
+        self:drawRect(w - HANDLE, h - HANDLE, HANDLE, HANDLE, 0.7, 0.40, 0.40, 0.50)
         return
     end
 
-    -- Log de transicao entre efeitos
-    if info.id ~= self._lastId then
-        Log.debug("HUD: " .. tostring(self._lastId) .. " -> " .. tostring(info.id))
-        self._lastId = info.id
+    -- ── Linhas de efeito ─────────────────────────────────────
+
+    for idx, info in ipairs(infoList) do
+        local ry = HEADER_H + (idx - 1) * ROW_H
+
+        -- Cor do tipo
+        local nr, ng, nb
+        if info.isExpired then
+            nr, ng, nb = 0.55, 0.55, 0.55
+        elseif info.isCurse then
+            nr, ng, nb = 1.00, 0.28, 0.28
+        else
+            nr, ng, nb = 1.00, 0.85, 0.18
+        end
+
+        -- Linha 1: tipo + nome
+        local nameStr
+        if info.isExpired then
+            nameStr = info.isCurse and "[ Maldicao Encerrada ]" or "[ Bencao Encerrada ]"
+        else
+            local prefix = info.isCurse and "[Maldicao] " or "[Bencao] "
+            nameStr = prefix .. (DISPLAY_NAMES[info.id] or info.id)
+        end
+        self:drawText(nameStr, 8, ry + 4, nr, ng, nb, 1, UIFont.Small)
+
+        -- Linha 2: descricao
+        local desc = DESCRIPTIONS[info.id] or ""
+        if desc ~= "" then
+            self:drawText(desc, 12, ry + 20, 0.62, 0.62, 0.62, 1, UIFont.Small)
+        end
+
+        -- Linha 3: timer
+        self:drawText(info.timerText, 12, ry + 36, 0.50, 0.50, 0.50, 1, UIFont.Small)
+
+        -- Separador entre linhas (exceto a ultima)
+        if idx < n then
+            self:drawRect(8, ry + ROW_H - 2, w - 16, 1, 0.5, 0.25, 0.25, 0.25, 0.25)
+        end
     end
 
-    -- Borda dinamica por tipo
-    if info.isExpired then
-        self.borderColor = { r=0.45, g=0.45, b=0.45, a=1 }
-    elseif info.isCurse then
-        self.borderColor = { r=0.85, g=0.10, b=0.10, a=1 }
-    else
-        self.borderColor = { r=0.75, g=0.55, b=0.10, a=1 }
-    end
+    -- Handle de resize (canto inferior direito)
+    self:drawRect(w - HANDLE, h - HANDLE, HANDLE, HANDLE, 0.7, 0.40, 0.40, 0.50)
+end
 
-    ISPanel.render(self)  -- limpa area e desenha fundo + borda
+-- ── API global ────────────────────────────────────────────────
 
-    -- Cor do nome
-    local r, g, b = 1, 0.85, 0.20          -- dourado (bencao)
-    if info.isCurse   then r, g, b = 1,    0.30, 0.30 end   -- vermelho
-    if info.isExpired then r, g, b = 0.60, 0.60, 0.60 end   -- cinza
+DayvinhoBlessings_HUD = {}
 
-    local label
-    if info.isExpired then
-        label = info.isCurse and "[ Maldicao Encerrada ]" or "[ Bencao Encerrada ]"
-    else
-        local prefix = info.isCurse and "Maldicao: " or "Bencao: "
-        label = prefix .. (DISPLAY_NAMES[info.id] or info.id)
-    end
+function DayvinhoBlessings_HUD.toggle()
+    if not _hudPanel then return end
+    local newVis = not _hudPanel:isVisible()
+    _hudPanel:setVisible(newVis)
+    _hudPanel:_saveLayout()
+    Log.info("HUD " .. (newVis and "mostrado" or "ocultado"))
+end
 
-    self:drawText(label,          8, 6,       r,    g,    b,    1, UIFont.Small)
-    self:drawText(info.timerText, 8, h/2 + 2, 0.80, 0.80, 0.80, 1, UIFont.Small)
+function DayvinhoBlessings_HUD.isVisible()
+    return _hudPanel ~= nil and _hudPanel:isVisible()
+end
 
-    -- Handle de redimensionamento (canto inferior direito)
-    self:drawRect(w - HANDLE, h - HANDLE, HANDLE, HANDLE, 0.7, 0.45, 0.45, 0.55)
-
-    -- Indicador de bloqueio
-    if self._locked then
-        self:drawText("[F]", w - HANDLE - 22, h - HANDLE, 0.5, 0.5, 0.5, 0.7, UIFont.Small)
+function DayvinhoBlessings_HUD.show()
+    if not _hudPanel then return end
+    if not _hudPanel:isVisible() then
+        _hudPanel:setVisible(true)
+        _hudPanel:_saveLayout()
     end
 end
 
@@ -219,7 +347,7 @@ end
 local _hudPanel = nil
 
 local function _loadLayout()
-    local x, y, w, h, locked = DEFAULT_X, DEFAULT_Y, DEFAULT_W, DEFAULT_H, false
+    local x, y, w, locked, visible = DEFAULT_X, DEFAULT_Y, DEFAULT_W, false, true
     pcall(function()
         local player = getPlayer()
         if not player then return end
@@ -228,20 +356,23 @@ local function _loadLayout()
         x      = md[MD_KEY].hudX      or x
         y      = md[MD_KEY].hudY      or y
         w      = md[MD_KEY].hudW      or w
-        h      = md[MD_KEY].hudH      or h
         locked = md[MD_KEY].hudLocked or locked
+        local v = md[MD_KEY].hudVisible
+        visible = (v == nil) and true or v
     end)
-    return x, y, w, h, locked
+    return x, y, w, locked, visible
 end
 
 local function createHUD()
     if _hudPanel then return end
-    local x, y, w, h, locked = _loadLayout()
-    _hudPanel = DayvinhoBlessings_HUDPanel:new(x, y, w, h)
+    local x, y, w, locked, visible = _loadLayout()
+    _hudPanel = DayvinhoBlessings_HUDPanel:new(x, y, w)
     _hudPanel._locked = locked
     _hudPanel:initialise()
     _hudPanel:addToUIManager()
-    Log.info(string.format("HUD criado em (%d,%d) %dx%d locked=%s", x, y, w, h, tostring(locked)))
+    _hudPanel:setVisible(visible)
+    Log.info(string.format("HUD criado em (%d,%d) w=%d locked=%s vis=%s",
+        x, y, w, tostring(locked), tostring(visible)))
 end
 
 local function onLoad()
@@ -249,13 +380,12 @@ local function onLoad()
         createHUD()
         return
     end
-    -- Reposiciona com layout salvo ao carregar save
-    local x, y, w, h, locked = _loadLayout()
+    local x, y, w, locked, visible = _loadLayout()
     _hudPanel:setX(x)
     _hudPanel:setY(y)
     _hudPanel:setWidth(w)
-    _hudPanel:setHeight(h)
     _hudPanel._locked = locked
+    _hudPanel:setVisible(visible)
 end
 
 Events.OnGameStart.Add(createHUD)

@@ -36,6 +36,7 @@ local _lastTickTime    = 0
 local _initialized     = false
 local _hadDayvinho     = false
 local _expiryNotif     = nil  -- { isCurse, showUntil } — exibido no HUD por ~6s
+local _justDiscarded   = false  -- sinaliza que Curses.lua já tratou a remoção
 
 -- ── Helpers ───────────────────────────────────────────────────
 
@@ -178,6 +179,19 @@ local function applyBlessing(player, blessingId, isLegendary)
     pcall(player.Say, player, DayvinhoBlessings_Messages.getForBlessing(blessingId))
 end
 
+-- ── API pública: marca que Curses.lua já tratou a remoção ─────
+-- Evita dupla maldição quando "Descartar" já chamou triggerCurse.
+
+function DayvinhoBlessings_Main.markDiscarded()
+    _justDiscarded = true
+end
+
+-- ── API pública: verificar se há efeitos ativos ───────────────
+
+function DayvinhoBlessings_Main.hasActiveEffects()
+    return #_activeEffects > 0 or (_expiryNotif ~= nil)
+end
+
 -- ── API pública: disparar maldição (chamada pelo Curses.lua) ──
 
 function DayvinhoBlessings_Main.triggerCurse(player, triggerType)
@@ -269,6 +283,17 @@ local function onTick()
 
     local hasDayvinho = playerHasDayvinho(player)
 
+    -- Detecta Dayvinho saindo do inventário → maldição automática
+    -- Cobre: jogar no chão, colocar em móvel, mochila, zumbi, qualquer container.
+    -- Não re-cursifica quando "Descartar" já tratou (_justDiscarded = true).
+    if _hadDayvinho and not hasDayvinho then
+        if _justDiscarded then
+            _justDiscarded = false
+        else
+            DayvinhoBlessings_Main.triggerCurse(player, "removed")
+        end
+    end
+
     -- Mensagem de boas-vindas na primeira vez que o item entra no inventário
     if hasDayvinho and not _hadDayvinho then
         pcall(player.Say, player, DayvinhoBlessings_Messages.getGreeting())
@@ -331,37 +356,43 @@ local function onLevelPerk(player, perk)
     end
 end
 
--- ── API pública: informações para o HUD overlay ───────────────
+-- ── API pública: lista completa de efeitos para o HUD ────────
 
-function DayvinhoBlessings_Main.getHUDInfo()
+function DayvinhoBlessings_Main.getHUDInfoAll()
     local t = now()
-    -- Efeito ativo com timer
-    for i = #_activeEffects, 1, -1 do
+    local results = {}
+
+    -- Todos os efeitos ativos com timer
+    for i = 1, #_activeEffects do
         local eff = _activeEffects[i]
         if eff.endTime then
             local remaining = eff.endTime - t
             if remaining > 0 then
                 local mins = math.floor(remaining / 60)
                 local secs = remaining % 60
-                return {
+                results[#results + 1] = {
                     id        = eff.id,
                     isCurse   = eff.kind == "curse",
                     timerText = string.format("%d:%02d", mins, secs),
+                    remaining = remaining,
                     isExpired = false,
                 }
             end
         end
     end
-    -- Notificação de expiração recente
+
+    -- Notificação de expiração recente (após o efeito acabar)
     if _expiryNotif and t < _expiryNotif.showUntil then
-        return {
+        results[#results + 1] = {
             id        = "_expired",
             isCurse   = _expiryNotif.isCurse,
             timerText = "Encerrado",
+            remaining = 0,
             isExpired = true,
         }
     end
-    return nil
+
+    return #results > 0 and results or nil
 end
 
 Events.OnGameStart.Add(onGameStart)

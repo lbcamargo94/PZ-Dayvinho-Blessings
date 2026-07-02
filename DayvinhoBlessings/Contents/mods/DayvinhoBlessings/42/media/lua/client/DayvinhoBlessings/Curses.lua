@@ -259,6 +259,12 @@ local function onDiscardDayvinho(playerNum, dayvinhoItem)
     end
     if not player then return end
 
+    -- Sinaliza que esta remoção já será tratada aqui;
+    -- o onTick em Main.lua vai ignorar a transição e não duplicar a maldição.
+    if DayvinhoBlessings_Main then
+        DayvinhoBlessings_Main.markDiscarded()
+    end
+
     pcall(function()
         player:getInventory():Remove(dayvinhoItem)
     end)
@@ -276,8 +282,18 @@ local function onInventoryContextMenu(playerNum, context, items)
         player = playerNum
     end
     if not player then return end
-    if not playerHasDayvinho(player) then return end
 
+    -- Opção toggle do HUD: visível quando Dayvinho está no inventário ou há efeito ativo
+    local hasDay = playerHasDayvinho(player)
+    local hasEff = DayvinhoBlessings_Main and DayvinhoBlessings_Main.hasActiveEffects()
+    if (hasDay or hasEff) and DayvinhoBlessings_HUD then
+        local vis   = DayvinhoBlessings_HUD.isVisible()
+        local label = vis and "Ocultar HUD Dayvinho" or "Mostrar HUD Dayvinho"
+        context:addOption(label, nil, function() DayvinhoBlessings_HUD.toggle() end)
+    end
+
+    -- Opção Descartar: apenas se o item estiver no inventário
+    if not hasDay then return end
     local dayvinhoItem = getDayvinhoFromInventory(player)
     if not dayvinhoItem then return end
 
