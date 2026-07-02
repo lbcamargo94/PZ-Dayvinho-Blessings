@@ -42,18 +42,24 @@ end
 
 local function buildPerkCache()
     local cache = {}
-    local i = 0
-    while true do
-        local pe = Perks.fromIndex(i)
-        if pe == nil then break end
-        local ok, perk = pcall(function() return PerkFactory.getPerk(pe) end)
-        if ok and perk then
-            local ok2, typeStr = pcall(function() return tostring(perk:getType()) end)
-            if ok2 and typeStr and typeStr ~= "" and typeStr ~= "nil" then
-                cache[typeStr] = pe
+    -- Perks.getMaxIndex() dá o limite seguro; fromIndex é 0-based
+    local ok0, maxIdx = pcall(function() return Perks.getMaxIndex() end)
+    if not ok0 or not maxIdx then return cache end
+    for i = 0, maxIdx - 1 do
+        local ok1, pe = pcall(function() return Perks.fromIndex(i) end)
+        if not ok1 or pe == nil then break end
+        local ok2, perk = pcall(function() return PerkFactory.getPerk(pe) end)
+        if ok2 and perk then
+            -- Filtra perks-raiz (categorias como Agility, Crafting, etc.) que
+            -- nunca recebem XP diretamente — parent == Perks.None os identifica
+            local ok3, parent = pcall(function() return perk:getParent() end)
+            if ok3 and parent ~= Perks.None then
+                local ok4, typeStr = pcall(function() return tostring(pe) end)
+                if ok4 and typeStr and typeStr ~= "" and typeStr ~= "nil" then
+                    cache[typeStr] = pe
+                end
             end
         end
-        i = i + 1
     end
     return cache
 end
@@ -236,7 +242,9 @@ local function onLevelPerk(player, perk)
     if not player or not perk then return end
     if not playerHasDayvinho(player) then return end
 
-    local ok, typeStr = pcall(function() return tostring(perk:getType()) end)
+    -- LevelPerk passa o enum Perks.X diretamente (não um Perk object),
+    -- então tostring(perk) dá a string usada como chave no cache
+    local ok, typeStr = pcall(function() return tostring(perk) end)
     if not ok or not typeStr then return end
 
     -- Verifica se xp_boost está ativo E se esta é a habilidade sorteada
@@ -256,7 +264,8 @@ local function onLevelPerk(player, perk)
 
     local level  = player:getPerkLevel(perkEnum) or 1
     local xpGain = math.max(1, math.floor(level * 75 * mult))
-    pcall(function() player:addXP(perkEnum, xpGain) end)
+    -- B42: player:addXP() não existe; a API correta é player:getXp():AddXP()
+    pcall(function() player:getXp():AddXP(perkEnum, xpGain) end)
 end
 
 Events.OnGameStart.Add(onGameStart)
