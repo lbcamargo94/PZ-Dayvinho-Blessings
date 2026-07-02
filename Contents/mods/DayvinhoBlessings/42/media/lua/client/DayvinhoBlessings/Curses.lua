@@ -15,6 +15,8 @@
 -- ============================================================
 
 require "DayvinhoBlessings/Messages"
+require "DayvinhoBlessings/Logger"
+local Log = DayvinhoBlessings_Logger
 
 DayvinhoBlessings_Curses = {}
 
@@ -186,6 +188,7 @@ local function wrapDestructiveOptions(context, player)
             local name    = rawget(opt, "name") or ""
             local trigger = triggerTypeForLabel(tostring(name))
             if trigger then
+                Log.debug("opcao destrutiva detectada: " .. tostring(name) .. " -> " .. trigger)
                 local origOnSelect = rawget(opt, "onSelect")
                 opt.onSelect = function(...)
                     if origOnSelect then
@@ -221,4 +224,5 @@ end
 if not DayvinhoBlessings_Curses._contextMenuRegistered then
     Events.OnFillWorldObjectContextMenu.Add(onContextMenu)
     DayvinhoBlessings_Curses._contextMenuRegistered = true
+    Log.info("hook OnFillWorldObjectContextMenu registrado")
 end

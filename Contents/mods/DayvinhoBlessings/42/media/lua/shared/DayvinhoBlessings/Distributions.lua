@@ -3,6 +3,9 @@
 --  Raro: ~1% por container elegível (quartos, lojas)
 -- ============================================================
 
+require "DayvinhoBlessings/Logger"
+local Log = DayvinhoBlessings_Logger
+
 local ITEM_TYPE    = "Base.DayvinhoDeBolso"
 local SPAWN_CHANCE = 0.01   -- 1%
 
@@ -29,11 +32,15 @@ end
 
 Events.OnFillContainer.Add(function(location, container, containerobj)
     if not containerobj then return end
-    if not matchesAny(location, VALID_ROOMS)     then return end
+    if not matchesAny(location, VALID_ROOMS)      then return end
     if not matchesAny(container, VALID_CONTAINERS) then return end
     if math.random() >= SPAWN_CHANCE               then return end
 
-    pcall(function()
+    local ok = Log.try(function()
         containerobj:AddItem(ITEM_TYPE)
-    end)
+    end, "Distributions.AddItem")
+
+    if ok then
+        Log.debug("spawn: " .. ITEM_TYPE .. " em " .. tostring(location) .. "/" .. tostring(container))
+    end
 end)

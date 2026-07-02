@@ -3,6 +3,8 @@
 --  bênçãos, maldições e mensagens de falha.
 -- ============================================================
 
+require "DayvinhoBlessings/Logger"
+
 DayvinhoBlessings_Messages = {}
 
 -- Tabela de chaves: categoria → lista de chaves UI_*

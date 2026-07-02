@@ -20,6 +20,7 @@
 -- ============================================================
 
 require "DayvinhoBlessings/Messages"
+require "DayvinhoBlessings/Logger"
 
 DayvinhoBlessings_Blessings = {}
 

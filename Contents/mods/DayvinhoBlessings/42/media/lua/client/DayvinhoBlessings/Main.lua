@@ -7,9 +7,11 @@
 --    LevelPerk    → aplica bônus de XP quando xp_boost está ativo
 -- ============================================================
 
+require "DayvinhoBlessings/Logger"
 require "DayvinhoBlessings/Messages"
 require "DayvinhoBlessings/Blessings"
 require "DayvinhoBlessings/Curses"
+local Log = DayvinhoBlessings_Logger
 
 DayvinhoBlessings_Main = {}
 
@@ -133,7 +135,10 @@ end
 
 local function applyBlessing(player, blessingId, isLegendary)
     local def = DayvinhoBlessings_Blessings.getDef(blessingId)
-    if not def then return end
+    if not def then
+        Log.error("blessing desconhecida: " .. tostring(blessingId))
+        return
+    end
 
     local data = {}
     pcall(def.apply, player, isLegendary, data)
@@ -141,10 +146,14 @@ local function applyBlessing(player, blessingId, isLegendary)
     -- XP Boost: sorteia UMA habilidade aleatória para receber o bônus
     if blessingId == "xp_boost" then
         data.perkType = pickRandomPerkType()
+        Log.debug("xp_boost: habilidade sorteada = " .. tostring(data.perkType))
     end
 
     local dur = def.duration or 0
     if isLegendary and dur > 0 then dur = math.floor(dur * 1.5) end
+
+    Log.info(string.format("bencao aplicada: %s | lendaria=%s | duracao=%ds",
+        blessingId, tostring(isLegendary), dur))
 
     if dur > 0 then
         addEffect(blessingId, "blessing", dur, def, player, data)
@@ -158,12 +167,17 @@ end
 function DayvinhoBlessings_Main.triggerCurse(player, triggerType)
     local effectId = DayvinhoBlessings_Curses.pickRandomEffect()
     local def      = DayvinhoBlessings_Curses.getDef(effectId)
-    if not def then return end
+    if not def then
+        Log.error("efeito de maldicao desconhecido: " .. tostring(effectId))
+        return
+    end
 
     local data = {}
     pcall(def.apply, player, data)
 
     addEffect(effectId, "curse", DayvinhoBlessings_Curses.getDuration(), def, player, data)
+
+    Log.info(string.format("maldicao ativada: %s | gatilho=%s", effectId, tostring(triggerType)))
 
     pcall(player.Say, player, DayvinhoBlessings_Messages.getCurseMsg(triggerType))
 end
@@ -202,7 +216,14 @@ local function onGameStart()
     _initialized     = false
 
     local ok, result = pcall(buildPerkCache)
-    if ok and result then _perkCache = result end
+    if ok and result then
+        _perkCache = result
+        local count = 0
+        for _ in pairs(_perkCache) do count = count + 1 end
+        Log.info(string.format("inicializado — cache de perks: %d habilidades", count))
+    else
+        Log.warn("falha ao construir cache de perks no OnGameStart")
+    end
 
     _initialized = true
 end
@@ -215,8 +236,16 @@ local function onTick()
 
     -- Reconstrói cache de perks se vazio (falhou no onGameStart)
     if not next(_perkCache) then
+        Log.warn("cache de perks vazio — reconstruindo")
         local ok, result = pcall(buildPerkCache)
-        if ok and result then _perkCache = result end
+        if ok and result then
+            _perkCache = result
+            local count = 0
+            for _ in pairs(_perkCache) do count = count + 1 end
+            Log.info(string.format("cache reconstruido: %d habilidades", count))
+        else
+            Log.error("falha ao reconstruir cache de perks")
+        end
     end
 
     if not playerHasDayvinho(player) then
@@ -265,7 +294,11 @@ local function onLevelPerk(player, perk)
     local level  = player:getPerkLevel(perkEnum) or 1
     local xpGain = math.max(1, math.floor(level * 75 * mult))
     -- B42: player:addXP() não existe; a API correta é player:getXp():AddXP()
-    pcall(function() player:getXp():AddXP(perkEnum, xpGain) end)
+    local xpOk = Log.try(function() player:getXp():AddXP(perkEnum, xpGain) end, "onLevelPerk.AddXP")
+    if xpOk then
+        Log.debug(string.format("xp_boost: +%d xp em %s (nivel %d, mult %.0f%%)",
+            xpGain, typeStr, level, mult * 100))
+    end
 end
 
 Events.OnGameStart.Add(onGameStart)
