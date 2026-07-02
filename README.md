@@ -1,6 +1,6 @@
 # Bênçãos do Dayvinho
 
-Mod para **Project Zomboid Build 42** que adiciona o item **Dayvinho de Bolso** ao mundo do jogo. Quem o encontrar pode receber bênçãos temporárias que aumentam o ganho de XP nas habilidades de sobrevivência.
+Mod para **Project Zomboid Build 42** que adiciona o item **Dayvinho de Bolso** ao mundo do jogo. Carregue-o no inventário e receba bênçãos temporárias a cada 6 horas in-game — ou uma maldição, se você se comportar mal.
 
 ---
 
@@ -8,7 +8,7 @@ Mod para **Project Zomboid Build 42** que adiciona o item **Dayvinho de Bolso** 
 
 ### 1. Encontre o Dayvinho de Bolso
 
-O item é **muito raro** (~0,1% de chance por container elegível) e pode aparecer em:
+O item é raro (~**1% de chance** por container elegível) e pode aparecer em:
 
 - Quartos de dormir e quartos infantis
 - Guarda-roupas e cômodas
@@ -17,42 +17,87 @@ O item é **muito raro** (~0,1% de chance por container elegível) e pode aparec
 
 Mantenha-o no inventário. Ele não precisa estar equipado.
 
-### 2. Receba uma bênção
+### 2. Receba uma bênção a cada 6 horas
 
-A cada **level-up de qualquer habilidade**, o jogo rola uma chance de ativar uma bênção:
+A cada **6 horas in-game** (≈ 6 minutos reais na velocidade padrão), o Dayvinho verifica se uma bênção será concedida. **Sono e avanço de tempo não contam** — o timer usa o relógio real.
 
-| Tipo | Chance | Duração |
-|------|--------|---------|
-| Bênção normal | 0,5% | 10 minutos reais |
-| Bênção lendária | 0,05% | 10 minutos reais |
+| Etapa | Chance |
+| --- | --- |
+| Dayvinho coopera | 50% |
+| Bênção **Lendária** (se cooperou) | 5% |
+| Bênção **Normal** (se cooperou) | 95% |
 
-Quando ativada, o personagem reage com uma mensagem de bênção.
+> **Cooldown:** 24 horas **in-game** entre bênçãos. Persiste ao salvar e recarregar.
 
-> **Cooldown:** 12 horas **in-game** entre bênçãos. O cooldown persiste ao salvar e recarregar.
+### 3. Tipos de bênção (24 no total)
 
-### 3. Ganhe XP bônus
+As bênçãos são sorteadas aleatoriamente por peso. A versão **Lendária** tem duração 1,5× maior e efeitos mais intensos.
 
-Enquanto a bênção estiver ativa, cada level-up nas **habilidades suportadas** concede XP extra automaticamente:
+| Bênção | Efeito | Duração |
+| --- | --- | --- |
+| **XP Boost** | +10% / +20% de XP em todas as 35 habilidades | 15 min |
+| **Sorte** | +10 / +15 de Luck | 30 min |
+| **Achado Valioso** | Raio de foraging +15% / +22% | 10 min |
+| **Presente do Jardim** | 1 item aleatório (2 no lendário) | Instantâneo |
+| **Barriga Cheia** | Reduz fome gradualmente | 30 min |
+| **Água Fresca** | Reduz sede em 50% / 70% | Instantâneo |
+| **Descanso Revigorante** | Reduz fadiga em 15% / 25% | Instantâneo |
+| **Espírito Forte** | Reduz estresse e tédio gradualmente | 30 min |
+| **Bom Humor** | Reduz infelicidade em 25% / 40% | Instantâneo |
+| **Paz Interior** | Reduz estresse em 30% / 45% | Instantâneo |
+| **Sono Tranquilo** | Próximo sono será mais reparador | Instantâneo |
+| **Mãos Habilidosas** | Velocidade de ação +10% / +15% | 20 min |
+| **Pescador Abençoado** | Multiplicador de pesca +10% / +15% | 30 min |
+| **Colheita Feliz** | Plantas crescem mais rápido (+ bônus de espírito) | 30 min |
+| **Lenhador Sortudo** | Mais toras por corte (+ bônus de endurance) | 20 min |
+| **Passos Leves** | Menos ruído ao se mover | 20 min |
+| **Olhos Atentos** | Raio de foraging +12% / +20% | 20 min |
+| **Instinto de Sobrevivência** | Reduz pânico em 10% / 20% | 10 min |
+| **Mochila Organizada** | Capacidade de carga +5% / +10% | 30 min |
+| **Cura Natural** | Recuperação de ferimentos gradual | 30 min |
+| **Corpo Resistente** | Restaura endurance gradualmente | 20 min |
+| **Bênção da Coragem** | Reduz pânico gradualmente | 30 min |
+| **Sol Abençoado** | Para a chuva (se estiver chovendo) | Instantâneo |
+| **Arco-Íris** | Narrativo + redução leve de infelicidade | Instantâneo |
 
-| Habilidade | Bônus normal | Bônus lendário |
-|------------|-------------|----------------|
-| Pesca | +150 XP | +225 XP |
-| Carpintaria | +100 XP | +150 XP |
-| Agricultura | +100 XP | +150 XP |
-| Mecânica | +125 XP | +187 XP |
-| Metalurgia | +100 XP | +150 XP |
-| Manutenção | +100 XP | +150 XP |
-| Culinária | +125 XP | +187 XP |
-| Costura | +125 XP | +187 XP |
+Ao expirar, o personagem recebe uma mensagem de encerramento.
 
-Ao expirar, o personagem emite uma mensagem de encerramento.
+---
+
+### 4. Sistema de Maldições
+
+Se o jogador tiver o Dayvinho no inventário e executar uma das **5 ações proibidas** via menu de contexto, uma maldição é ativada imediatamente.
+
+**Ações que invocam maldição:**
+
+| Ação | Gatilho no menu |
+| --- | --- |
+| Queimar | Burn / Queimar |
+| Destruir | Destroy / Destruir |
+| Descartar | Trash / Discard / Lixo |
+| Explodir | Explode / Detonar |
+| Atropelar | Run Over / Atropelar |
+
+**Efeitos possíveis (1 sorteado aleatoriamente, duração 10 minutos reais):**
+
+| Maldição | Efeito |
+| --- | --- |
+| Má Sorte | -10 de Luck |
+| Pânico Acelerado | Pânico aumenta gradualmente |
+| Fome Repentina | +20% de fome imediata |
+| Sede Repentina | +20% de sede imediata |
+| Corpo Fraco | -10% de endurance imediata |
+| Mais Barulho | Pânico aumenta gradualmente (ruído surrogate) |
+| Infelicidade | +20% de infelicidade imediata |
+| Estresse | +15% de estresse imediato |
+| Alucinação | Narrativo + infelicidade leve |
 
 ---
 
 ## O Item
 
 | Propriedade | Valor |
-|-------------|-------|
+| --- | --- |
 | ID | `Base.DayvinhoDeBolso` |
 | Peso | 0,1 |
 | Ícone | `LawnGnome` (anão de jardim existente no jogo) |
@@ -72,74 +117,77 @@ Contents/mods/DayvinhoBlessings/42/
     └── lua/
         ├── shared/
         │   ├── DayvinhoBlessings/
-        │   │   └── Distributions.lua   — spawn do item no mundo
+        │   │   └── Distributions.lua   — spawn do item no mundo (1%)
         │   └── Translate/
         │       ├── EN/
         │       │   ├── ItemName.json   — nome em inglês
         │       │   ├── Tooltip.json    — tooltip em inglês
-        │       │   └── UI.json         — mensagens em inglês
+        │       │   └── UI.json         — ~120 chaves de mensagem
         │       └── PTBR/
         │           ├── ItemName.json   — nome em português
         │           ├── Tooltip.json    — tooltip em português
-        │           └── UI.json         — mensagens em português
+        │           └── UI.json         — ~120 chaves em português
         └── client/
             └── DayvinhoBlessings/
-                ├── Main.lua            — sistema de bênçãos
-                └── Messages.lua        — chaves de tradução por habilidade
+                ├── Messages.lua        — tabela de chaves e funções getText
+                ├── Blessings.lua       — 24 tipos de bênção (apply/tick/remove)
+                ├── Curses.lua          — 9 efeitos de maldição + hook de menu
+                └── Main.lua            — motor de timer, efeitos e eventos
 ```
 
 ---
 
 ## Arquivos em detalhe
 
-### `mod.info`
-Metadados do mod. ID: `DayvinhoBlessings`, compatível com PZ 42.
-
-### `items_dayvinho.txt`
-Define `Base.DayvinhoDeBolso` no módulo `Base` do jogo. O `DisplayName` é o fallback em inglês; as traduções reais vêm dos JSON em `Translate/`.
-
 ### `Distributions.lua`
-Hook no evento `OnFillContainer`. Verifica se o tipo de cômodo e de container são elegíveis; se sim, rola 0,1% de chance e adiciona o item. Roda no contexto **shared** (funciona em singleplayer e multiplayer).
+Hook em `OnFillContainer`. Verifica cômodo e container elegíveis; rola **1%** de chance e adiciona o item. Roda no contexto **shared** (singleplayer e multiplayer).
 
 ### `Messages.lua`
-Tabela de chaves de tradução por categoria de habilidade (`Fishing`, `Woodwork`, `Farming`, `Mechanics`, `MetalWelding`, `Maintenance`, `Cooking`, `Tailoring`, `Legendary`, `Generic`, `End`). Expõe três funções:
-- `getForSkill(skillType)` — retorna uma mensagem aleatória para a habilidade indicada
-- `getLegendary()` — retorna uma mensagem de bênção lendária
-- `getEnd()` — retorna uma mensagem de encerramento
+Tabela de chaves `UI_DayBless_*` e `UI_DayCurse_*`. Expõe:
+- `getForBlessing(id)` — mensagem aleatória para o tipo de bênção
+- `getFail()` — mensagem de falha do timer
+- `getEnd()` — mensagem de expiração de bênção
+- `getCurseMsg(triggerType)` — mensagem temática por tipo de ação maldita
+- `getCurseEnd()` — mensagem de expiração de maldição
 
-Todas as strings usam `getText(key)`, o sistema padrão de localização do PZ.
+### `Blessings.lua`
+Define os 24 tipos de bênção em uma tabela com peso, duração e funções `apply / onTick / onRemove`. Expõe `pickRandom()` (seleção ponderada) e `getDef(id)`.
+
+### `Curses.lua`
+Define os 9 efeitos de maldição. Registra `OnFillInventoryObjectContextMenu` para detectar as 5 ações proibidas no menu de contexto e acionar `DayvinhoBlessings_Main.triggerCurse()`.
 
 ### `Main.lua`
-Núcleo do sistema de bênçãos. Roda no contexto **client**.
+Motor central. Roda no contexto **client**.
 
 **Eventos utilizados:**
 
 | Evento PZ | Função |
-|-----------|--------|
-| `OnGameStart` | Reseta estado, constrói cache de perks, inicia grace period |
-| `LevelPerk` | Verifica trigger de bênção e aplica XP bônus |
-| `OnTick` | Detecta expiração da bênção e notifica o jogador |
+| --- | --- |
+| `OnGameStart` | Reseta estado, constrói cache de perks |
+| `OnTick` | Timer de 6h, processa efeitos ativos (tick/expiração) |
+| `LevelPerk` | Aplica XP bônus quando `xp_boost` está ativo |
 
-**Grace period:** os primeiros 120 ticks após `OnGameStart` são ignorados para evitar disparos falsos ao carregar um save.
+**Timer:** usa `os.time()` com intervalo de 360 segundos reais. Durante o sono, o tempo real passa devagar — o sono efetivamente não conta para o timer.
 
-**Persistência:** o horário (em horas in-game) da última bênção é salvo via `player:getModData()["DayvinhoBlessings"].lastBlessingHours`, que o PZ persiste automaticamente no save.
+**Efeitos ativos:** tabela `_activeEffects` com lifecycle `{id, kind, endTime, onTick, onRemove, data}`. Bênçãos e maldições coexistem.
 
-**Cache de perks:** `buildPerkCache()` itera todos os perks do jogo via `Perks.fromIndex` e `PerkFactory.getPerk` para criar um mapa `{ [typeString] = perkEnum }`. Isso evita iterar todos os perks a cada level-up.
+**XP Boost:** quando ativo, o handler `LevelPerk` calcula `level × 75 × mult` para cada habilidade que sobe de nível.
+
+**Persistência:** `player:getModData()["DayvinhoBlessings"].nextBlessingWorldHours` guarda o horário in-game do próximo cooldown, sobrevivendo a saves e reloads.
 
 ### `Translate/EN/` e `Translate/PTBR/`
-Arquivos JSON no formato padrão do PZ B42. O jogo faz merge automático com as traduções base. Idiomas sem arquivo próprio neste mod recebem o fallback EN.
+Arquivos JSON no formato padrão do PZ B42. Idiomas sem arquivo próprio recebem fallback EN.
 
-**Arquivos:**
 - `ItemName.json` — chave `"Base.DayvinhoDeBolso"`
 - `Tooltip.json` — chave `"Tooltip_DayvinhoDeBolso"`
-- `UI.json` — 43 chaves `UI_DayBless_*` (4 por habilidade + legendária, genérica e encerramento)
+- `UI.json` — ~120 chaves (`UI_DayBless_*` e `UI_DayCurse_*`)
 
 ---
 
 ## Compatibilidade
 
 - **Build:** Project Zomboid B42.19+
-- **Multiplayer:** compatível (distribuição e bênçãos são client-side por jogador)
+- **Multiplayer:** compatível (bênçãos e maldições são client-side por jogador)
 - **Outros mods:** não modifica arquivos base, sem conflito esperado
 
 ---
@@ -147,9 +195,10 @@ Arquivos JSON no formato padrão do PZ B42. O jogo faz merge automático com as 
 ## Histórico de versões
 
 | Versão | Descrição |
-|--------|-----------|
-| `v1.0.0` | Implementação inicial: item, spawn, sistema de bênçãos, mensagens em PT-BR |
+| --- | --- |
+| `v1.0.0` | Implementação inicial: item, spawn, bênçãos de XP por level-up, PT-BR |
 | `v1.0.1` | Ícone trocado para `LawnGnome` |
-| `v1.0.2` | Corrigido: `GardenGnome` não existe nos texture packs; ícone correto é `LawnGnome` |
-| `v1.0.3` | Corrigido: typo `DayvinhoDeBollo` → `DayvinhoDeBolso` em todos os arquivos |
-| `v1.1.0` | Conversão para padrão EN do jogo + sistema de tradução JSON (EN + PTBR) |
+| `v1.0.2` | Corrigido: `GardenGnome` não existe nos texture packs |
+| `v1.0.3` | Corrigido: typo `DayvinhoDeBollo` → `DayvinhoDeBolso` |
+| `v1.1.0` | Conversão para padrão EN + sistema de tradução JSON (EN + PTBR) |
+| `v2.0.0` | Rework completo: timer de 6h, 24 tipos de bênção com efeitos reais, sistema de maldições com 5 gatilhos e 9 efeitos, ~120 chaves de tradução |
