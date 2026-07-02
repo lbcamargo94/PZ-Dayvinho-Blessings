@@ -2,7 +2,7 @@
 --  Main.lua — Sistema de Bênçãos do Dayvinho (B42.19+)
 --
 --  Mecânica:
---    1. O jogador precisa do item "Base.DayvinhoDeBollo" no inventário.
+--    1. O jogador precisa do item "Base.DayvinhoDeBolso" no inventário.
 --    2. A cada level-up de qualquer habilidade: rola 0,5% de chance de
 --       ativar uma Bênção (ou 0,05% para Lendária).
 --    3. Cooldown de 12 horas in-game entre ativações.
@@ -15,7 +15,7 @@ require "DayvinhoBlessings/Messages"
 
 -- ── Constantes ───────────────────────────────────────────────
 
-local ITEM_TYPE         = "Base.DayvinhoDeBollo"
+local ITEM_TYPE         = "Base.DayvinhoDeBolso"
 local MOD_KEY           = "DayvinhoBlessings"
 local BLESSING_CHANCE   = 0.005    -- 0,5% por level-up
 local LEGENDARY_CHANCE  = 0.0005   -- 0,05% (1 em 2000) — Lendária

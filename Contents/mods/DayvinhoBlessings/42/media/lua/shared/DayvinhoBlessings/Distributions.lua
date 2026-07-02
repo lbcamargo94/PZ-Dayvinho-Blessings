@@ -3,7 +3,7 @@
 --  Muito Raro: ~0.1% por container elegível (quartos, lojas)
 -- ============================================================
 
-local ITEM_TYPE    = "Base.DayvinhoDeBollo"
+local ITEM_TYPE    = "Base.DayvinhoDeBolso"
 local SPAWN_CHANCE = 0.001  -- 0.1%
 
 -- Tipos de cômodo onde o item pode aparecer (substrings, case insensitive)
