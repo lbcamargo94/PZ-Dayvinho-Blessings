@@ -176,11 +176,11 @@ local function triggerTypeForLabel(label)
 end
 
 -- ── Wrapping de opções do menu de contexto ────────────────────
--- Em B42, context.options é uma tabela Lua com entradas { name, onSelect, ... }
+-- Em B42, context.options é uma tabela Lua com entradas { name, onMouseUp, target, ... }
 -- Envolvemos cada opção destrutiva encontrada com um callback extra.
 
 local function wrapDestructiveOptions(context, player)
-    local opts = rawget(context, "options")
+    local opts = context.options
     if type(opts) ~= "table" then return end
 
     for _, opt in ipairs(opts) do
@@ -189,10 +189,10 @@ local function wrapDestructiveOptions(context, player)
             local trigger = triggerTypeForLabel(tostring(name))
             if trigger then
                 Log.debug("opcao destrutiva detectada: " .. tostring(name) .. " -> " .. trigger)
-                local origOnSelect = rawget(opt, "onSelect")
-                opt.onSelect = function(...)
-                    if origOnSelect then
-                        pcall(origOnSelect, ...)
+                local origOnMouseUp = rawget(opt, "onMouseUp")
+                opt.onMouseUp = function(target, ...)
+                    if origOnMouseUp then
+                        pcall(origOnMouseUp, target, ...)
                     end
                     if DayvinhoBlessings_Main then
                         DayvinhoBlessings_Main.triggerCurse(player, trigger)
@@ -230,6 +230,27 @@ end
 -- OnFillInventoryObjectContextMenu(playerNum, context, items)
 -- Adiciona opção "Descartar" que remove o item e dispara maldição.
 
+-- Iteração defensiva: items pode conter InventoryItem direto ou tabela de stack
+local function findDayvinhoInItems(items)
+    for i = 1, #items do
+        local entry = items[i]
+        -- Caso 1: InventoryItem direto (objeto Java)
+        local ok, ft = pcall(function() return entry:getFullType() end)
+        if ok and ft == ITEM_TYPE then return entry end
+        -- Caso 2: tabela de stack { items = { head, item1, item2, ... } }
+        if type(entry) == "table" then
+            local sub = rawget(entry, "items")
+            if type(sub) == "table" then
+                for j = 1, #sub do
+                    local ok2, ft2 = pcall(function() return sub[j]:getFullType() end)
+                    if ok2 and ft2 == ITEM_TYPE then return sub[j] end
+                end
+            end
+        end
+    end
+    return nil
+end
+
 local function onDiscardDayvinho(playerNum, dayvinhoItem)
     local player
     if type(playerNum) == "number" then
@@ -258,16 +279,7 @@ local function onInventoryContextMenu(playerNum, context, items)
     if not player then return end
     if not playerHasDayvinho(player) then return end
 
-    local dayvinhoItem = nil
-    pcall(function()
-        local actual = ISInventoryPane.getActualItems(items)
-        for _, item in ipairs(actual) do
-            if item:getFullType() == ITEM_TYPE then
-                dayvinhoItem = item
-                break
-            end
-        end
-    end)
+    local dayvinhoItem = findDayvinhoInItems(items)
     if not dayvinhoItem then return end
 
     Log.debug("opcao Descartar do Dayvinho adicionada ao menu de inventario")

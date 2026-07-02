@@ -35,6 +35,7 @@ local _lastTriggerTime = 0
 local _lastTickTime    = 0
 local _initialized     = false
 local _hadDayvinho     = false
+local _expiryNotif     = nil  -- { isCurse, showUntil } — exibido no HUD por ~6s
 
 -- ── Helpers ───────────────────────────────────────────────────
 
@@ -95,7 +96,8 @@ end
 
 -- ── Motor de efeitos ──────────────────────────────────────────
 
-local function addEffect(id, kind, durationSecs, def, player, data)
+-- persist=true: efeito continua mesmo sem o Dayvinho no inventário (ex: maldições)
+local function addEffect(id, kind, durationSecs, def, player, data, persist)
     local endTime = (durationSecs and durationSecs > 0)
         and (now() + durationSecs) or nil
     _activeEffects[#_activeEffects + 1] = {
@@ -105,6 +107,7 @@ local function addEffect(id, kind, durationSecs, def, player, data)
         onTick   = def and def.onTick,
         onRemove = def and def.onRemove,
         data     = data,
+        persist  = persist == true,
     }
 end
 
@@ -127,10 +130,15 @@ local function tickEffects(player, t)
     while i >= 1 do
         local eff = _activeEffects[i]
         if eff.endTime and t >= eff.endTime then
+            local msg
             if eff.kind == "blessing" then
-                pcall(player.Say, player, DayvinhoBlessings_Messages.getEnd())
+                msg = DayvinhoBlessings_Messages.getEnd()
             elseif eff.kind == "curse" then
-                pcall(player.Say, player, DayvinhoBlessings_Messages.getCurseEnd())
+                msg = DayvinhoBlessings_Messages.getCurseEnd()
+            end
+            if msg then
+                pcall(player.Say, player, msg)
+                _expiryNotif = { isCurse = eff.kind == "curse", showUntil = t + 6 }
             end
             removeEffect(i, player)
         elseif eff.onTick then
@@ -183,7 +191,7 @@ function DayvinhoBlessings_Main.triggerCurse(player, triggerType)
     local data = {}
     pcall(def.apply, player, data)
 
-    addEffect(effectId, "curse", DayvinhoBlessings_Curses.getDuration(), def, player, data)
+    addEffect(effectId, "curse", DayvinhoBlessings_Curses.getDuration(), def, player, data, true)
 
     Log.info(string.format("maldicao ativada: %s | gatilho=%s", effectId, tostring(triggerType)))
 
@@ -222,6 +230,7 @@ local function onGameStart()
     _lastTickTime    = now()
     _initialized     = false
     _hadDayvinho     = false
+    _expiryNotif     = nil
 
     local ok, result = pcall(buildPerkCache)
     if ok and result then
@@ -259,23 +268,33 @@ local function onTick()
     end
 
     local hasDayvinho = playerHasDayvinho(player)
+
+    -- Mensagem de boas-vindas na primeira vez que o item entra no inventário
     if hasDayvinho and not _hadDayvinho then
         pcall(player.Say, player, DayvinhoBlessings_Messages.getGreeting())
     end
     _hadDayvinho = hasDayvinho
+
+    -- Sem o item: remove apenas efeitos não-persistentes (bênçãos).
+    -- Maldições (persist=true) continuam até expirar naturalmente.
     if not hasDayvinho then
-        if #_activeEffects > 0 then clearAllEffects(player) end
-        return
+        for i = #_activeEffects, 1, -1 do
+            if not _activeEffects[i].persist then
+                removeEffect(i, player)
+            end
+        end
     end
 
     local t = now()
 
-    if t - _lastTickTime >= TICK_INTERVAL then
+    -- Processa todos os efeitos ativos (inclusive maldições sem o item)
+    if #_activeEffects > 0 and t - _lastTickTime >= TICK_INTERVAL then
         _lastTickTime = t
         tickEffects(player, t)
     end
 
-    if t - _lastTriggerTime >= TIMER_INTERVAL then
+    -- Dispara novo timer apenas quando o Dayvinho está presente
+    if hasDayvinho and t - _lastTriggerTime >= TIMER_INTERVAL then
         _lastTriggerTime = t
         tryTrigger(player)
     end
@@ -310,6 +329,39 @@ local function onLevelPerk(player, perk)
         Log.debug(string.format("xp_boost: +%d xp em %s (nivel %d, mult %.0f%%)",
             xpGain, typeStr, level, mult * 100))
     end
+end
+
+-- ── API pública: informações para o HUD overlay ───────────────
+
+function DayvinhoBlessings_Main.getHUDInfo()
+    local t = now()
+    -- Efeito ativo com timer
+    for i = #_activeEffects, 1, -1 do
+        local eff = _activeEffects[i]
+        if eff.endTime then
+            local remaining = eff.endTime - t
+            if remaining > 0 then
+                local mins = math.floor(remaining / 60)
+                local secs = remaining % 60
+                return {
+                    id        = eff.id,
+                    isCurse   = eff.kind == "curse",
+                    timerText = string.format("%d:%02d", mins, secs),
+                    isExpired = false,
+                }
+            end
+        end
+    end
+    -- Notificação de expiração recente
+    if _expiryNotif and t < _expiryNotif.showUntil then
+        return {
+            id        = "_expired",
+            isCurse   = _expiryNotif.isCurse,
+            timerText = "Encerrado",
+            isExpired = true,
+        }
+    end
+    return nil
 end
 
 Events.OnGameStart.Add(onGameStart)
