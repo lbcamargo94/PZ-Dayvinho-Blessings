@@ -5,7 +5,7 @@ module Base
         DisplayName                 = Dayvinho de Bolso,
         Type                        = Normal,
         Weight                      = 0.1,
-        Icon                        = KeyRing,
+        Icon                        = GardenGnome,
         CanStack                    = FALSE,
         Tooltip                     = Tooltip_DayvinhoDeBolso,
     }
