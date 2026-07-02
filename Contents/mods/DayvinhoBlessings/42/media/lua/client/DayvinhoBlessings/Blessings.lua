@@ -7,6 +7,16 @@
 --    apply    : function(player, isLegendary, data) chamada ao ativar
 --    onTick   : function(player, data) chamada a cada ~2s enquanto ativa
 --    onRemove : function(player, data) chamada ao expirar
+--
+--  API de stats (B42): CharacterStat enum
+--    s:get(CharacterStat.X)    — lê valor atual (escala 0-1)
+--    s:set(CharacterStat.X, v) — define valor absoluto
+--  APIs inexistentes em B42 substituídas por surrogates:
+--    setLuck/getLuck          → CharacterStat.MORALE
+--    setForagingRadius        → CharacterStat.MORALE
+--    setFishingMultiplier     → CharacterStat.MORALE
+--    setWalkingSpeed          → CharacterStat.ENDURANCE
+--    getOverallBodyHealth/setOverallBodyHealth → CharacterStat.PAIN
 -- ============================================================
 
 require "DayvinhoBlessings/Messages"
@@ -40,34 +50,37 @@ local DEFS = {
         onRemove = function(player, data) data.mult = 0 end,
     },
 
-    -- ── Sorte ────────────────────────────────────────────────
+    -- ── Sorte: morale boost (getLuck/setLuck não existem no B42) ──
     luck = {
         weight = 8, duration = 1800,  -- 30 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
-            local ok, prev = pcall(function() return s:getLuck() end)
-            data.prev = ok and prev or 0
-            local bonus = legendary and 15 or 10
-            pcall(function() s:setLuck(data.prev + bonus) end)
+            local prev  = s:get(CharacterStat.MORALE) or 0
+            data.prev   = prev
+            local bonus = legendary and 0.15 or 0.10
+            data.bonus  = bonus
+            pcall(function() s:set(CharacterStat.MORALE, clamp(prev + bonus, 0, 1)) end)
         end,
         onRemove = function(player, data)
             local s = stats(player); if not s then return end
-            pcall(function() s:setLuck(data.prev or 0) end)
+            pcall(function() s:set(CharacterStat.MORALE, data.prev or 0) end)
         end,
     },
 
-    -- ── Achado Valioso: foraging radius +15% ─────────────────
+    -- ── Achado Valioso: morale boost (setForagingRadius não existe no B42) ──
     foraging = {
         weight = 6, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
+            local s = stats(player); if not s then return end
+            local prev  = s:get(CharacterStat.MORALE) or 0
+            data.prev   = prev
             local bonus = legendary and 0.22 or 0.15
-            data.bonus = bonus
-            pcall(function() player:setForagingRadius(
-                (player:getForagingRadius() or 0) + bonus) end)
+            data.bonus  = bonus
+            pcall(function() s:set(CharacterStat.MORALE, clamp(prev + bonus, 0, 1)) end)
         end,
         onRemove = function(player, data)
-            pcall(function() player:setForagingRadius(
-                math.max(0, (player:getForagingRadius() or 0) - (data.bonus or 0))) end)
+            local s = stats(player); if not s then return end
+            pcall(function() s:set(CharacterStat.MORALE, data.prev or 0) end)
         end,
     },
 
@@ -77,7 +90,6 @@ local DEFS = {
         apply = function(player, legendary, data)
             local itemType = GIFT_ITEMS[math.random(#GIFT_ITEMS)]
             if legendary then
-                -- dois itens no lendário
                 pcall(function() player:getInventory():AddItem(itemType) end)
                 local extra = GIFT_ITEMS[math.random(#GIFT_ITEMS)]
                 pcall(function() player:getInventory():AddItem(extra) end)
@@ -95,8 +107,8 @@ local DEFS = {
         end,
         onTick = function(player, data)
             local s = stats(player); if not s then return end
-            local cur = s:getHunger() or 0
-            pcall(function() s:setHunger(clamp(cur - data.rate, 0, 1)) end)
+            local cur = s:get(CharacterStat.HUNGER) or 0
+            pcall(function() s:set(CharacterStat.HUNGER, clamp(cur - data.rate, 0, 1)) end)
         end,
     },
 
@@ -106,8 +118,8 @@ local DEFS = {
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local pct = legendary and 0.70 or 0.50
-            local cur = s:getThirst() or 0
-            pcall(function() s:setThirst(clamp(cur * (1 - pct), 0, 1)) end)
+            local cur = s:get(CharacterStat.THIRST) or 0
+            pcall(function() s:set(CharacterStat.THIRST, clamp(cur * (1 - pct), 0, 1)) end)
         end,
     },
 
@@ -117,8 +129,8 @@ local DEFS = {
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local pct = legendary and 0.25 or 0.15
-            local cur = s:getFatigue() or 0
-            pcall(function() s:setFatigue(clamp(cur - pct, 0, 1)) end)
+            local cur = s:get(CharacterStat.FATIGUE) or 0
+            pcall(function() s:set(CharacterStat.FATIGUE, clamp(cur - pct, 0, 1)) end)
         end,
     },
 
@@ -131,8 +143,10 @@ local DEFS = {
         onTick = function(player, data)
             local s = stats(player); if not s then return end
             pcall(function()
-                s:setStress(clamp((s:getStress() or 0) - data.rate, 0, 1))
-                s:setBoredom(clamp((s:getBoredom() or 0) - data.rate, 0, 1))
+                local stress  = s:get(CharacterStat.STRESS)  or 0
+                local boredom = s:get(CharacterStat.BOREDOM) or 0
+                s:set(CharacterStat.STRESS,  clamp(stress  - data.rate, 0, 1))
+                s:set(CharacterStat.BOREDOM, clamp(boredom - data.rate, 0, 1))
             end)
         end,
     },
@@ -143,8 +157,8 @@ local DEFS = {
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local pct = legendary and 0.40 or 0.25
-            local cur = s:getUnhappiness() or 0
-            pcall(function() s:setUnhappiness(clamp(cur * (1 - pct), 0, 1)) end)
+            local cur = s:get(CharacterStat.UNHAPPINESS) or 0
+            pcall(function() s:set(CharacterStat.UNHAPPINESS, clamp(cur * (1 - pct), 0, 1)) end)
         end,
     },
 
@@ -154,8 +168,8 @@ local DEFS = {
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local pct = legendary and 0.45 or 0.30
-            local cur = s:getStress() or 0
-            pcall(function() s:setStress(clamp(cur * (1 - pct), 0, 1)) end)
+            local cur = s:get(CharacterStat.STRESS) or 0
+            pcall(function() s:set(CharacterStat.STRESS, clamp(cur * (1 - pct), 0, 1)) end)
         end,
     },
 
@@ -165,90 +179,92 @@ local DEFS = {
         apply = function(player, legendary, data)
             local md = player:getModData()
             md.DayvinhoBlessings = md.DayvinhoBlessings or {}
-            md.DayvinhoBlessings.calmSleepPending = true
+            md.DayvinhoBlessings.calmSleepPending   = true
             md.DayvinhoBlessings.calmSleepLegendary = legendary == true
         end,
     },
 
-    -- ── Mãos Habilidosas: velocidade de ação +10% ─────────────
+    -- ── Mãos Habilidosas: endurance boost (setWalkingSpeed não existe no B42) ──
     skilled_hands = {
         weight = 5, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
-            local mult = legendary and 0.15 or 0.10
-            data.mult = mult
-            pcall(function()
-                player:getStats():setWalkingSpeed(
-                    (player:getStats():getWalkingSpeed() or 1) + mult * 0.2)
-            end)
+            local s = stats(player); if not s then return end
+            local prev  = s:get(CharacterStat.ENDURANCE) or 0
+            data.prev   = prev
+            local bonus = legendary and 0.15 or 0.10
+            data.bonus  = bonus
+            pcall(function() s:set(CharacterStat.ENDURANCE, clamp(prev + bonus, 0, 1)) end)
         end,
         onRemove = function(player, data)
+            local s = stats(player); if not s then return end
             pcall(function()
-                player:getStats():setWalkingSpeed(
-                    math.max(0.5, (player:getStats():getWalkingSpeed() or 1) - (data.mult or 0) * 0.2))
+                local cur = s:get(CharacterStat.ENDURANCE) or 0
+                s:set(CharacterStat.ENDURANCE, clamp(cur - (data.bonus or 0), 0, 1))
             end)
         end,
     },
 
-    -- ── Pescador Abençoado: bônus de pesca ───────────────────
+    -- ── Pescador Abençoado: morale boost (setFishingMultiplier não existe no B42) ──
     fisherman = {
         weight = 4, duration = 1800,
         apply = function(player, legendary, data)
+            local s = stats(player); if not s then return end
+            local prev  = s:get(CharacterStat.MORALE) or 0
+            data.prev   = prev
             local bonus = legendary and 0.15 or 0.10
-            data.bonus = bonus
-            pcall(function() player:setFishingMultiplier(
-                (player:getFishingMultiplier() or 1) + bonus) end)
+            data.bonus  = bonus
+            pcall(function() s:set(CharacterStat.MORALE, clamp(prev + bonus, 0, 1)) end)
         end,
         onRemove = function(player, data)
-            pcall(function() player:setFishingMultiplier(
-                math.max(0, (player:getFishingMultiplier() or 1) - (data.bonus or 0))) end)
+            local s = stats(player); if not s then return end
+            pcall(function() s:set(CharacterStat.MORALE, data.prev or 0) end)
         end,
     },
 
-    -- ── Colheita Feliz: crescimento de plantas ────────────────
+    -- ── Colheita Feliz: redução de estresse ───────────────────
     harvest = {
         weight = 3, duration = 1800,
         apply = function(player, legendary, data)
-            -- Crescimento de plantas é server-side; aplica bônus de espírito como surrogate
             local s = stats(player); if not s then return end
-            pcall(function() s:setStress(clamp((s:getStress() or 0) - 0.05, 0, 1)) end)
+            local cur = s:get(CharacterStat.STRESS) or 0
+            pcall(function() s:set(CharacterStat.STRESS, clamp(cur - 0.05, 0, 1)) end)
         end,
     },
 
-    -- ── Lenhador Sortudo ─────────────────────────────────────
+    -- ── Lenhador Sortudo: bônus de endurance ──────────────────
     lumberjack = {
         weight = 3, duration = 1200,
         apply = function(player, legendary, data)
-            -- Rende de árvores é server-side; aplica bônus de endurance como surrogate
             local s = stats(player); if not s then return end
-            local cur = s:getEndurance() or 0
-            pcall(function() s:setEndurance(clamp(cur + 0.10, 0, 1)) end)
+            local cur = s:get(CharacterStat.ENDURANCE) or 0
+            pcall(function() s:set(CharacterStat.ENDURANCE, clamp(cur + 0.10, 0, 1)) end)
         end,
     },
 
-    -- ── Passos Leves: menos ruído ─────────────────────────────
+    -- ── Passos Leves: reduz pânico ────────────────────────────
     light_steps = {
         weight = 5, duration = 1200,
         apply = function(player, legendary, data)
-            data.applied = true
-            -- Ruído interno é complex no B42; reduz pânico como efeito surrogate
             local s = stats(player); if not s then return end
-            local cur = s:getPanic() or 0
-            pcall(function() s:setPanic(clamp(cur - 0.05, 0, 1)) end)
+            local cur = s:get(CharacterStat.PANIC) or 0
+            pcall(function() s:set(CharacterStat.PANIC, clamp(cur - 0.05, 0, 1)) end)
         end,
     },
 
-    -- ── Olhos Atentos: raio de foraging ──────────────────────
+    -- ── Olhos Atentos: morale boost (setForagingRadius não existe no B42) ──
     sharp_eyes = {
         weight = 4, duration = 1200,
         apply = function(player, legendary, data)
+            local s = stats(player); if not s then return end
+            local prev  = s:get(CharacterStat.MORALE) or 0
+            data.prev   = prev
             local bonus = legendary and 0.20 or 0.12
-            data.bonus = bonus
-            pcall(function() player:setForagingRadius(
-                (player:getForagingRadius() or 0) + bonus) end)
+            data.bonus  = bonus
+            pcall(function() s:set(CharacterStat.MORALE, clamp(prev + bonus, 0, 1)) end)
         end,
         onRemove = function(player, data)
-            pcall(function() player:setForagingRadius(
-                math.max(0, (player:getForagingRadius() or 0) - (data.bonus or 0))) end)
+            local s = stats(player); if not s then return end
+            pcall(function() s:set(CharacterStat.MORALE, data.prev or 0) end)
         end,
     },
 
@@ -257,23 +273,23 @@ local DEFS = {
         weight = 3, duration = 600,
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
-            local cur = s:getPanic() or 0
+            local cur = s:get(CharacterStat.PANIC) or 0
             local pct = legendary and 0.20 or 0.10
-            pcall(function() s:setPanic(clamp(cur * (1 - pct), 0, 1)) end)
+            pcall(function() s:set(CharacterStat.PANIC, clamp(cur * (1 - pct), 0, 1)) end)
         end,
     },
 
-    -- ── Mochila Organizada: -5% peso efetivo ─────────────────
+    -- ── Mochila Organizada: +5/10% capacidade de carga ───────
     backpack = {
         weight = 4, duration = 1800,
         apply = function(player, legendary, data)
             local pct = legendary and 0.10 or 0.05
-            data.pct = pct
+            data.pct  = pct
             pcall(function()
-                local inv = player:getInventory()
-                local max = inv:getMaxWeight() or 20
-                data.origMax = max
-                inv:setMaxWeight(max * (1 + pct))
+                local inv    = player:getInventory()
+                local maxW   = inv:getMaxWeight() or 20
+                data.origMax = maxW
+                inv:setMaxWeight(maxW * (1 + pct))
             end)
         end,
         onRemove = function(player, data)
@@ -285,20 +301,18 @@ local DEFS = {
         end,
     },
 
-    -- ── Cura Natural: recuperação de ferimentos ───────────────
+    -- ── Cura Natural: reduz dor gradualmente (B42: CharacterStat.PAIN) ──
     natural_heal = {
         weight = 6, duration = 1800,
         apply = function(player, legendary, data)
             data.rate = legendary and 0.003 or 0.002
         end,
         onTick = function(player, data)
-            pcall(function()
-                local bd = player:getBodyDamage()
-                local hp = bd:getOverallBodyHealth() or 100
-                if hp < 100 then
-                    bd:setOverallBodyHealth(math.min(100, hp + data.rate))
-                end
-            end)
+            local s = stats(player); if not s then return end
+            local cur = s:get(CharacterStat.PAIN) or 0
+            if cur > 0 then
+                pcall(function() s:set(CharacterStat.PAIN, clamp(cur - data.rate, 0, 1)) end)
+            end
         end,
     },
 
@@ -310,8 +324,8 @@ local DEFS = {
         end,
         onTick = function(player, data)
             local s = stats(player); if not s then return end
-            local cur = s:getEndurance() or 0
-            pcall(function() s:setEndurance(clamp(cur + data.rate, 0, 1)) end)
+            local cur = s:get(CharacterStat.ENDURANCE) or 0
+            pcall(function() s:set(CharacterStat.ENDURANCE, clamp(cur + data.rate, 0, 1)) end)
         end,
     },
 
@@ -323,8 +337,8 @@ local DEFS = {
         end,
         onTick = function(player, data)
             local s = stats(player); if not s then return end
-            local cur = s:getPanic() or 0
-            pcall(function() s:setPanic(clamp(cur - data.rate, 0, 1)) end)
+            local cur = s:get(CharacterStat.PANIC) or 0
+            pcall(function() s:set(CharacterStat.PANIC, clamp(cur - data.rate, 0, 1)) end)
         end,
     },
 
@@ -341,12 +355,13 @@ local DEFS = {
         end,
     },
 
-    -- ── Arco-Íris: apenas mensagem + humor ───────────────────
+    -- ── Arco-Íris: narrativo + redução leve de infelicidade ──
     rainbow = {
         weight = 2, duration = 0,
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
-            pcall(function() s:setUnhappiness(clamp((s:getUnhappiness() or 0) - 0.05, 0, 1)) end)
+            local cur = s:get(CharacterStat.UNHAPPINESS) or 0
+            pcall(function() s:set(CharacterStat.UNHAPPINESS, clamp(cur - 0.05, 0, 1)) end)
         end,
     },
 }

@@ -2,10 +2,16 @@
 --  Curses.lua — Sistema de maldições do Dayvinho de Bolso
 --
 --  Acionado quando o jogador tem o item no inventário e executa
---  uma das 5 ações proibidas no menu de contexto:
---    burn, destroy, trash, explode, run (atropelar)
+--  uma ação destrutiva via menu de contexto de objeto no mundo.
+--
+--  Hook: OnFillWorldObjectContextMenu
+--    (OnFillInventoryObjectContextMenu NÃO recebe opções
+--     Burn/Destroy/Trash/Explode/RunOver no B42)
 --
 --  9 efeitos possíveis, duração 10 minutos reais (600s)
+--
+--  API de stats (B42): CharacterStat enum
+--    getLuck/setLuck (inexistentes) → CharacterStat.MORALE
 -- ============================================================
 
 require "DayvinhoBlessings/Messages"
@@ -26,89 +32,96 @@ local CURSE_DURATION = 600  -- 10 minutos reais
 -- ── 9 definições de efeito de maldição ───────────────────────
 
 local CURSE_EFFECTS = {
+
+    -- Má Sorte: reduz morale (surrogate; getLuck/setLuck não existem no B42)
     bad_luck = {
         apply = function(player, data)
             local s = stats(player); if not s then return end
-            local ok, prev = pcall(function() return s:getLuck() end)
-            data.prev = ok and prev or 0
-            pcall(function() s:setLuck(data.prev - 10) end)
+            local prev   = s:get(CharacterStat.MORALE) or 0
+            data.prev    = prev
+            pcall(function() s:set(CharacterStat.MORALE, clamp(prev - 0.10, 0, 1)) end)
         end,
         onRemove = function(player, data)
             local s = stats(player); if not s then return end
-            pcall(function() s:setLuck(data.prev or 0) end)
+            pcall(function() s:set(CharacterStat.MORALE, data.prev or 0) end)
         end,
     },
 
+    -- Pânico Acelerado: aumenta pânico gradualmente
     panic_faster = {
         apply = function(player, data)
             data.rate = 0.003
         end,
         onTick = function(player, data)
             local s = stats(player); if not s then return end
-            local cur = s:getPanic() or 0
-            pcall(function() s:setPanic(clamp(cur + data.rate, 0, 1)) end)
+            local cur = s:get(CharacterStat.PANIC) or 0
+            pcall(function() s:set(CharacterStat.PANIC, clamp(cur + data.rate, 0, 1)) end)
         end,
     },
 
+    -- Fome Repentina: +20% de fome imediata
     hunger_up = {
         apply = function(player, data)
             local s = stats(player); if not s then return end
-            local cur = s:getHunger() or 0
-            pcall(function() s:setHunger(clamp(cur + 0.20, 0, 1)) end)
+            local cur = s:get(CharacterStat.HUNGER) or 0
+            pcall(function() s:set(CharacterStat.HUNGER, clamp(cur + 0.20, 0, 1)) end)
         end,
     },
 
+    -- Sede Repentina: +20% de sede imediata
     thirst_up = {
         apply = function(player, data)
             local s = stats(player); if not s then return end
-            local cur = s:getThirst() or 0
-            pcall(function() s:setThirst(clamp(cur + 0.20, 0, 1)) end)
+            local cur = s:get(CharacterStat.THIRST) or 0
+            pcall(function() s:set(CharacterStat.THIRST, clamp(cur + 0.20, 0, 1)) end)
         end,
     },
 
+    -- Corpo Fraco: -10% de endurance imediata
     endurance_down = {
         apply = function(player, data)
             local s = stats(player); if not s then return end
-            local cur = s:getEndurance() or 0
-            pcall(function() s:setEndurance(clamp(cur - 0.10, 0, 1)) end)
+            local cur = s:get(CharacterStat.ENDURANCE) or 0
+            pcall(function() s:set(CharacterStat.ENDURANCE, clamp(cur - 0.10, 0, 1)) end)
         end,
     },
 
-    -- Ruído interno do B42 não tem API cliente direta;
-    -- aumento de pânico gradual como substituto
+    -- Mais Barulho: aumento de pânico gradual (ruído surrogate)
     more_noise = {
         apply = function(player, data)
             data.rate = 0.002
         end,
         onTick = function(player, data)
             local s = stats(player); if not s then return end
-            local cur = s:getPanic() or 0
-            pcall(function() s:setPanic(clamp(cur + data.rate, 0, 1)) end)
+            local cur = s:get(CharacterStat.PANIC) or 0
+            pcall(function() s:set(CharacterStat.PANIC, clamp(cur + data.rate, 0, 1)) end)
         end,
     },
 
+    -- Infelicidade: +20% de infelicidade imediata
     unhappiness_up = {
         apply = function(player, data)
             local s = stats(player); if not s then return end
-            local cur = s:getUnhappiness() or 0
-            pcall(function() s:setUnhappiness(clamp(cur + 0.20, 0, 1)) end)
+            local cur = s:get(CharacterStat.UNHAPPINESS) or 0
+            pcall(function() s:set(CharacterStat.UNHAPPINESS, clamp(cur + 0.20, 0, 1)) end)
         end,
     },
 
+    -- Estresse: +15% de estresse imediato
     stress_up = {
         apply = function(player, data)
             local s = stats(player); if not s then return end
-            local cur = s:getStress() or 0
-            pcall(function() s:setStress(clamp(cur + 0.15, 0, 1)) end)
+            local cur = s:get(CharacterStat.STRESS) or 0
+            pcall(function() s:set(CharacterStat.STRESS, clamp(cur + 0.15, 0, 1)) end)
         end,
     },
 
-    -- Efeito visual: apenas narrativo + infelicidade leve
+    -- Alucinação: narrativo + infelicidade leve
     hallucination = {
         apply = function(player, data)
             local s = stats(player); if not s then return end
-            local cur = s:getUnhappiness() or 0
-            pcall(function() s:setUnhappiness(clamp(cur + 0.10, 0, 1)) end)
+            local cur = s:get(CharacterStat.UNHAPPINESS) or 0
+            pcall(function() s:set(CharacterStat.UNHAPPINESS, clamp(cur + 0.10, 0, 1)) end)
         end,
     },
 }
@@ -170,13 +183,13 @@ local function wrapDestructiveOptions(context, player)
 
     for _, opt in ipairs(opts) do
         if type(opt) == "table" then
-            local name = rawget(opt, "name") or ""
+            local name    = rawget(opt, "name") or ""
             local trigger = triggerTypeForLabel(tostring(name))
             if trigger then
                 local origOnSelect = rawget(opt, "onSelect")
                 opt.onSelect = function(...)
                     if origOnSelect then
-                        local ok = pcall(origOnSelect, ...)
+                        pcall(origOnSelect, ...)
                     end
                     if DayvinhoBlessings_Main then
                         DayvinhoBlessings_Main.triggerCurse(player, trigger)
@@ -187,10 +200,17 @@ local function wrapDestructiveOptions(context, player)
     end
 end
 
--- ── Hook no menu de contexto ──────────────────────────────────
+-- ── Hook no menu de contexto de objetos no mundo ─────────────
+-- OnFillWorldObjectContextMenu inclui opções Burn/Destroy que
+-- OnFillInventoryObjectContextMenu não possui no B42.
 
-local function onContextMenu(playerNum, context, items)
-    local player = getSpecificPlayer(playerNum)
+local function onContextMenu(playerNum, context, worldobjects, test)
+    local player
+    if type(playerNum) == "number" then
+        player = getSpecificPlayer(playerNum)
+    else
+        player = playerNum
+    end
     if not player then return end
     if not playerHasDayvinho(player) then return end
 
@@ -199,6 +219,6 @@ end
 
 -- Registra apenas uma vez
 if not DayvinhoBlessings_Curses._contextMenuRegistered then
-    Events.OnFillInventoryObjectContextMenu.Add(onContextMenu)
+    Events.OnFillWorldObjectContextMenu.Add(onContextMenu)
     DayvinhoBlessings_Curses._contextMenuRegistered = true
 end
