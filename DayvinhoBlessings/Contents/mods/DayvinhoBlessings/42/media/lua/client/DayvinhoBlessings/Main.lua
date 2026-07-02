@@ -235,7 +235,10 @@ local function onTick()
     if not player then return end
 
     -- Reconstrói cache de perks se vazio (falhou no onGameStart)
-    if not next(_perkCache) then
+    -- next() não está disponível no Kahlua do PZ; usa pairs para checar vazio
+    local _cacheIsEmpty = true
+    for _ in pairs(_perkCache) do _cacheIsEmpty = false; break end
+    if _cacheIsEmpty then
         Log.warn("cache de perks vazio — reconstruindo")
         local ok, result = pcall(buildPerkCache)
         if ok and result then

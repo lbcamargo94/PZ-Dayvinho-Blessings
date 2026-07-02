@@ -224,3 +224,4 @@ Arquivos JSON no formato padrão do PZ B42. Idiomas sem arquivo próprio recebem
 | `v2.0.5` | Sistema de logs exclusivo do mod: `Logger.lua` com níveis INFO/WARN/ERROR/DEBUG, prefixo `[DayvinhoBlessings]`, wrapper `Log.try()` para pcall com log automático de erros |
 | `v2.0.6` | Compatibilidade B42.19: `containsType` → `containsTypeRecurse` (crítico); `sun`: `climate:isRaining/stopRaining` → `RainManager`; `backpack`: `setMaxWeight` (inexistente em B42) → surrogate DISCOMFORT |
 | `v2.0.7` | Reorganização da estrutura do projeto: mod movido para `DayvinhoBlessings/` (padrão Workshop); `poster.png` adicionado ao `mod.info` |
+| `v2.0.8` | Fix crítico: `next()` não disponível no Kahlua do PZ → substituído por check com `pairs` no rebuild do cache de perks |
