@@ -1,6 +1,6 @@
 # Bênçãos do Dayvinho
 
-Mod para **Project Zomboid Build 42** que adiciona o item **Dayvinho de Bolso** ao mundo do jogo. Carregue-o no inventário e receba bênçãos temporárias a cada 6 horas in-game — ou uma maldição, se você se comportar mal.
+Mod para **Project Zomboid Build 42** que adiciona o item **Dayvinho de Bolso** ao mundo do jogo. Carregue-o no inventário e receba bênçãos temporárias a cada 1 dia in-game — ou uma maldição, se você se comportar mal.
 
 ---
 
@@ -17,7 +17,7 @@ O item é raro (~**1% de chance** por container elegível) e pode aparecer em:
 
 Mantenha-o no inventário. Ele não precisa estar equipado.
 
-### 2. Receba uma bênção a cada 6 horas
+### 2. Receba uma bênção a cada 1 dia in-game
 
 A cada **1 dia in-game** (≈ 24 minutos reais na velocidade padrão), o Dayvinho verifica se uma bênção será concedida. **Sono e avanço de tempo não contam** — o timer usa o relógio real.
 
@@ -164,7 +164,7 @@ Motor central. Roda no contexto **client**.
 | Evento PZ | Função |
 | --- | --- |
 | `OnGameStart` | Reseta estado, constrói cache de perks |
-| `OnTick` | Timer de 6h, processa efeitos ativos (tick/expiração) |
+| `OnTick` | Timer de 1 dia in-game, processa efeitos ativos (tick/expiração) |
 | `LevelPerk` | Aplica XP bônus quando `xp_boost` está ativo |
 
 **Timer:** usa `os.time()` com intervalo de 1440 segundos reais (1 dia in-game a 60x). Durante o sono, o tempo real passa devagar — o sono efetivamente não conta para o timer.
@@ -202,3 +202,6 @@ Arquivos JSON no formato padrão do PZ B42. Idiomas sem arquivo próprio recebem
 | `v1.0.3` | Corrigido: typo `DayvinhoDeBollo` → `DayvinhoDeBolso` |
 | `v1.1.0` | Conversão para padrão EN + sistema de tradução JSON (EN + PTBR) |
 | `v2.0.0` | Rework completo: timer de 6h, 24 tipos de bênção com efeitos reais, sistema de maldições com 5 gatilhos e 9 efeitos, ~120 chaves de tradução |
+| `v2.0.1` | XP Boost agora afeta apenas 1 habilidade sorteada (não todas as 35) |
+| `v2.0.2` | Timer ajustado de 6h → 1 dia in-game (1440s reais) |
+| `v2.0.3` | API de stats migrada B41→B42 (CharacterStat enum); hook de maldições corrigido para `OnFillWorldObjectContextMenu` |

@@ -3,7 +3,7 @@
 --
 --  Fluxo:
 --    OnGameStart  → inicializa estado, constrói cache de perks
---    OnTick       → processa efeitos ativos; dispara timer a cada 6h
+--    OnTick       → processa efeitos ativos; dispara timer a cada 1 dia in-game
 --    LevelPerk    → aplica bônus de XP quando xp_boost está ativo
 -- ============================================================
 
