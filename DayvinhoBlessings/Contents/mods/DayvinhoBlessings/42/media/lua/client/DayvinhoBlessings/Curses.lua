@@ -229,26 +229,25 @@ end
 -- ── Hook no menu de contexto do inventário (Descartar Dayvinho) ─
 -- OnFillInventoryObjectContextMenu(playerNum, context, items)
 -- Adiciona opção "Descartar" que remove o item e dispara maldição.
+--
+-- NÃO iteramos `items`: o formato varia entre mods (ex: CleanUI passa
+-- tabelas Lua, não objetos Java). Chamar entry:getFullType() em tabelas
+-- Lua lança RuntimeException no Kahlua que escapa do pcall do Lua.
+-- Solução: buscar o Dayvinho direto do inventário do jogador.
 
--- Iteração defensiva: items pode conter InventoryItem direto ou tabela de stack
-local function findDayvinhoInItems(items)
-    for i = 1, #items do
-        local entry = items[i]
-        -- Caso 1: InventoryItem direto (objeto Java)
-        local ok, ft = pcall(function() return entry:getFullType() end)
-        if ok and ft == ITEM_TYPE then return entry end
-        -- Caso 2: tabela de stack { items = { head, item1, item2, ... } }
-        if type(entry) == "table" then
-            local sub = rawget(entry, "items")
-            if type(sub) == "table" then
-                for j = 1, #sub do
-                    local ok2, ft2 = pcall(function() return sub[j]:getFullType() end)
-                    if ok2 and ft2 == ITEM_TYPE then return sub[j] end
-                end
+local function getDayvinhoFromInventory(player)
+    local found = nil
+    pcall(function()
+        local allItems = player:getInventory():getItems()
+        for i = 0, allItems:size() - 1 do
+            local it = allItems:get(i)
+            if it and it:getFullType() == ITEM_TYPE then
+                found = it
+                return
             end
         end
-    end
-    return nil
+    end)
+    return found
 end
 
 local function onDiscardDayvinho(playerNum, dayvinhoItem)
@@ -279,7 +278,7 @@ local function onInventoryContextMenu(playerNum, context, items)
     if not player then return end
     if not playerHasDayvinho(player) then return end
 
-    local dayvinhoItem = findDayvinhoInItems(items)
+    local dayvinhoItem = getDayvinhoFromInventory(player)
     if not dayvinhoItem then return end
 
     Log.debug("opcao Descartar do Dayvinho adicionada ao menu de inventario")
