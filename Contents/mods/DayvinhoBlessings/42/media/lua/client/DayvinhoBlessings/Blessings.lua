@@ -280,25 +280,20 @@ local DEFS = {
         end,
     },
 
-    -- ── Mochila Organizada: +5/10% capacidade de carga ───────
+    -- ── Mochila Organizada: reduz desconforto (surrogate B42) ────
+    -- inventory:setMaxWeight() não existe na API Lua B42.
+    -- Surrogate: reduz DISCOMFORT gradualmente (sensação de carga mais leve)
     backpack = {
         weight = 4, duration = 1800,
         apply = function(player, legendary, data)
-            local pct = legendary and 0.10 or 0.05
-            data.pct  = pct
-            pcall(function()
-                local inv    = player:getInventory()
-                local maxW   = inv:getMaxWeight() or 20
-                data.origMax = maxW
-                inv:setMaxWeight(maxW * (1 + pct))
-            end)
+            data.rate = legendary and 0.003 or 0.002
         end,
-        onRemove = function(player, data)
-            pcall(function()
-                if data.origMax then
-                    player:getInventory():setMaxWeight(data.origMax)
-                end
-            end)
+        onTick = function(player, data)
+            local s = stats(player); if not s then return end
+            local cur = s:get(CharacterStat.DISCOMFORT) or 0
+            if cur > 0 then
+                pcall(function() s:set(CharacterStat.DISCOMFORT, clamp(cur - data.rate, 0, 1)) end)
+            end
         end,
     },
 
@@ -343,14 +338,15 @@ local DEFS = {
         end,
     },
 
-    -- ── Sol Abençoado: tenta parar a chuva ───────────────────
+    -- ── Sol Abençoado: para a chuva via RainManager (B42) ───────
+    -- RainManager.isRaining() / stopRaining() confirmados no source B42
+    -- (shared/Fishing/FishingUtils.lua, server/Seasons/season.lua)
     sun = {
         weight = 3, duration = 0,
         apply = function(player, legendary, data)
             pcall(function()
-                local climate = getClimateManager()
-                if climate and climate:isRaining() then
-                    climate:stopRaining()
+                if RainManager.isRaining() then
+                    RainManager.stopRaining()
                 end
             end)
         end,

@@ -149,7 +149,7 @@ local ITEM_TYPE = "Base.DayvinhoDeBolso"
 
 local function playerHasDayvinho(player)
     local ok, has = pcall(function()
-        return player:getInventory():containsType(ITEM_TYPE)
+        return player:getInventory():containsTypeRecurse(ITEM_TYPE)
     end)
     return ok and has
 end

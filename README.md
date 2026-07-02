@@ -53,7 +53,7 @@ As bênçãos são sorteadas aleatoriamente por peso. A versão **Lendária** te
 | **Passos Leves** | Menos ruído ao se mover | 20 min |
 | **Olhos Atentos** | Raio de foraging +12% / +20% | 20 min |
 | **Instinto de Sobrevivência** | Reduz pânico em 10% / 20% | 10 min |
-| **Mochila Organizada** | Capacidade de carga +5% / +10% | 30 min |
+| **Mochila Organizada** | Reduz desconforto gradualmente (carga mais leve) | 30 min |
 | **Cura Natural** | Recuperação de ferimentos gradual | 30 min |
 | **Corpo Resistente** | Restaura endurance gradualmente | 20 min |
 | **Bênção da Coragem** | Reduz pânico gradualmente | 30 min |
@@ -218,3 +218,4 @@ Arquivos JSON no formato padrão do PZ B42. Idiomas sem arquivo próprio recebem
 | `v2.0.3` | API de stats migrada B41→B42 (CharacterStat enum); hook de maldições corrigido para `OnFillWorldObjectContextMenu` |
 | `v2.0.4` | XP Boost corrigido: cache de perks usa `Perks.getMaxIndex()` com loop seguro; handler `LevelPerk` usa `tostring(perk)` para match do cache; XP aplicado via `player:getXp():AddXP()` (B42) |
 | `v2.0.5` | Sistema de logs exclusivo do mod: `Logger.lua` com níveis INFO/WARN/ERROR/DEBUG, prefixo `[DayvinhoBlessings]`, wrapper `Log.try()` para pcall com log automático de erros |
+| `v2.0.6` | Compatibilidade B42.19: `containsType` → `containsTypeRecurse` (crítico); `sun`: `climate:isRaining/stopRaining` → `RainManager`; `backpack`: `setMaxWeight` (inexistente em B42) → surrogate DISCOMFORT |
