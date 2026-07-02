@@ -34,7 +34,9 @@ Events.OnFillContainer.Add(function(location, container, containerobj)
     if not containerobj then return end
     if not matchesAny(location, VALID_ROOMS)      then return end
     if not matchesAny(container, VALID_CONTAINERS) then return end
-    if math.random() >= SPAWN_CHANCE               then return end
+    -- OnFillContainer roda no contexto server; math.random nao existe la.
+    -- ZombRandFloat(0,1) e a API correta do PZ para float aleatorio.
+    if ZombRandFloat(0, 1) >= SPAWN_CHANCE          then return end
 
     local ok = Log.try(function()
         containerobj:AddItem(ITEM_TYPE)
