@@ -117,6 +117,7 @@ Contents/mods/DayvinhoBlessings/42/
     └── lua/
         ├── shared/
         │   ├── DayvinhoBlessings/
+        │   │   ├── Logger.lua          — sistema de logs do mod (INFO/WARN/ERROR/DEBUG)
         │   │   └── Distributions.lua   — spawn do item no mundo (1%)
         │   └── Translate/
         │       ├── EN/
@@ -138,6 +139,16 @@ Contents/mods/DayvinhoBlessings/42/
 ---
 
 ## Arquivos em detalhe
+
+### `Logger.lua`
+
+Módulo centralizado de logging do mod. Roda no contexto **shared** (disponível para todos os scripts). Expõe:
+
+- `Log.info(msg)` / `Log.warn(msg)` / `Log.error(msg)` / `Log.debug(msg)`
+- `Log.try(fn, contexto)` — wrapper de `pcall` que loga automaticamente erros com o contexto indicado
+- `Log.setLevel("DEBUG")` — ativa modo verboso em runtime para debug
+
+Todas as mensagens saem com o prefixo `[DayvinhoBlessings]` e aparecem no console do jogo (F11) e nos arquivos de log em `Zomboid/Logs/`.
 
 ### `Distributions.lua`
 Hook em `OnFillContainer`. Verifica cômodo e container elegíveis; rola **1%** de chance e adiciona o item. Roda no contexto **shared** (singleplayer e multiplayer).
@@ -206,3 +217,4 @@ Arquivos JSON no formato padrão do PZ B42. Idiomas sem arquivo próprio recebem
 | `v2.0.2` | Timer ajustado de 6h → 1 dia in-game (1440s reais) |
 | `v2.0.3` | API de stats migrada B41→B42 (CharacterStat enum); hook de maldições corrigido para `OnFillWorldObjectContextMenu` |
 | `v2.0.4` | XP Boost corrigido: cache de perks usa `Perks.getMaxIndex()` com loop seguro; handler `LevelPerk` usa `tostring(perk)` para match do cache; XP aplicado via `player:getXp():AddXP()` (B42) |
+| `v2.0.5` | Sistema de logs exclusivo do mod: `Logger.lua` com níveis INFO/WARN/ERROR/DEBUG, prefixo `[DayvinhoBlessings]`, wrapper `Log.try()` para pcall com log automático de erros |
