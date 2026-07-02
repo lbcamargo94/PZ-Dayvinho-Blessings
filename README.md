@@ -35,7 +35,7 @@ As bênçãos são sorteadas aleatoriamente por peso. A versão **Lendária** te
 
 | Bênção | Efeito | Duração |
 | --- | --- | --- |
-| **XP Boost** | +10% / +20% de XP em todas as 35 habilidades | 15 min |
+| **XP Boost** | +10% / +20% de XP em **1 habilidade sorteada** das 35 | 15 min |
 | **Sorte** | +10 / +15 de Luck | 30 min |
 | **Achado Valioso** | Raio de foraging +15% / +22% | 10 min |
 | **Presente do Jardim** | 1 item aleatório (2 no lendário) | Instantâneo |

@@ -58,6 +58,15 @@ local function buildPerkCache()
     return cache
 end
 
+-- ── Habilidade aleatória do cache ────────────────────────────
+
+local function pickRandomPerkType()
+    local keys = {}
+    for k in pairs(_perkCache) do keys[#keys + 1] = k end
+    if #keys == 0 then return nil end
+    return keys[math.random(#keys)]
+end
+
 -- ── Verificação de posse do item ──────────────────────────────
 
 local function playerHasDayvinho(player)
@@ -114,17 +123,6 @@ local function tickEffects(player, now)
     end
 end
 
--- ── Consulta do multiplicador XP ativo ───────────────────────
-
-local function getXpBoostMult()
-    for _, eff in ipairs(_activeEffects) do
-        if eff.id == "xp_boost" and eff.kind == "blessing" then
-            return (eff.data and eff.data.mult) or 0
-        end
-    end
-    return 0
-end
-
 -- ── Aplicar bênção ────────────────────────────────────────────
 
 local function applyBlessing(player, blessingId, isLegendary)
@@ -133,6 +131,11 @@ local function applyBlessing(player, blessingId, isLegendary)
 
     local data = {}
     pcall(def.apply, player, isLegendary, data)
+
+    -- XP Boost: sorteia UMA habilidade aleatória para receber o bônus
+    if blessingId == "xp_boost" then
+        data.perkType = pickRandomPerkType()
+    end
 
     local dur = def.duration or 0
     if isLegendary and dur > 0 then dur = math.floor(dur * 1.5) end
@@ -233,11 +236,20 @@ local function onLevelPerk(player, perk)
     if not player or not perk then return end
     if not playerHasDayvinho(player) then return end
 
-    local mult = getXpBoostMult()
-    if mult <= 0 then return end
-
     local ok, typeStr = pcall(function() return tostring(perk:getType()) end)
     if not ok or not typeStr then return end
+
+    -- Verifica se xp_boost está ativo E se esta é a habilidade sorteada
+    local mult = 0
+    for _, eff in ipairs(_activeEffects) do
+        if eff.id == "xp_boost" and eff.kind == "blessing" and eff.data then
+            if eff.data.perkType == typeStr then
+                mult = eff.data.mult or 0
+                break
+            end
+        end
+    end
+    if mult <= 0 then return end
 
     local perkEnum = _perkCache[typeStr]
     if not perkEnum then return end
