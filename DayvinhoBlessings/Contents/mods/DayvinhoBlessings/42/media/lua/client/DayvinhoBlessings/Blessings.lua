@@ -44,7 +44,7 @@ local DEFS = {
 
     -- ── XP Boost: +10% / +20% via LevelPerk (tratado no Main) ──
     xp_boost = {
-        weight = 15, duration = 900,  -- 15 min
+        weight = 15, duration = 300,  -- 5 min (teste)
         apply = function(player, legendary, data)
             data.mult = legendary and 0.20 or 0.10
         end,
@@ -53,7 +53,7 @@ local DEFS = {
 
     -- ── Sorte: morale boost (getLuck/setLuck não existem no B42) ──
     luck = {
-        weight = 8, duration = 1800,  -- 30 min
+        weight = 8, duration = 300,  -- 5 min (teste)
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local prev  = s:get(CharacterStat.MORALE) or 0
@@ -70,7 +70,7 @@ local DEFS = {
 
     -- ── Achado Valioso: morale boost (setForagingRadius não existe no B42) ──
     foraging = {
-        weight = 6, duration = 600,  -- 10 min
+        weight = 6, duration = 300,  -- 5 min (teste)
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local prev  = s:get(CharacterStat.MORALE) or 0
@@ -102,7 +102,7 @@ local DEFS = {
 
     -- ── Barriga Cheia: reduz fome ao longo do tempo ───────────
     full_belly = {
-        weight = 8, duration = 1800,
+        weight = 8, duration = 300,
         apply = function(player, legendary, data)
             data.rate = legendary and 0.004 or 0.002
         end,
@@ -137,7 +137,7 @@ local DEFS = {
 
     -- ── Espírito Forte: reduz estresse e tédio gradualmente ───
     spirit = {
-        weight = 7, duration = 1800,
+        weight = 7, duration = 300,
         apply = function(player, legendary, data)
             data.rate = legendary and 0.003 or 0.002
         end,
@@ -187,7 +187,7 @@ local DEFS = {
 
     -- ── Mãos Habilidosas: endurance boost (setWalkingSpeed não existe no B42) ──
     skilled_hands = {
-        weight = 5, duration = 1200,  -- 20 min
+        weight = 5, duration = 300,  -- 5 min (teste)
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local prev  = s:get(CharacterStat.ENDURANCE) or 0
@@ -207,7 +207,7 @@ local DEFS = {
 
     -- ── Pescador Abençoado: morale boost (setFishingMultiplier não existe no B42) ──
     fisherman = {
-        weight = 4, duration = 1800,
+        weight = 4, duration = 300,
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local prev  = s:get(CharacterStat.MORALE) or 0
@@ -224,7 +224,7 @@ local DEFS = {
 
     -- ── Colheita Feliz: redução de estresse ───────────────────
     harvest = {
-        weight = 3, duration = 1800,
+        weight = 3, duration = 300,
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.STRESS) or 0
@@ -234,7 +234,7 @@ local DEFS = {
 
     -- ── Lenhador Sortudo: bônus de endurance ──────────────────
     lumberjack = {
-        weight = 3, duration = 1200,
+        weight = 3, duration = 300,
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.ENDURANCE) or 0
@@ -244,7 +244,7 @@ local DEFS = {
 
     -- ── Passos Leves: reduz pânico ────────────────────────────
     light_steps = {
-        weight = 5, duration = 1200,
+        weight = 5, duration = 300,
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.PANIC) or 0
@@ -254,7 +254,7 @@ local DEFS = {
 
     -- ── Olhos Atentos: morale boost (setForagingRadius não existe no B42) ──
     sharp_eyes = {
-        weight = 4, duration = 1200,
+        weight = 4, duration = 300,
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local prev  = s:get(CharacterStat.MORALE) or 0
@@ -271,7 +271,7 @@ local DEFS = {
 
     -- ── Instinto de Sobrevivência: reduz pânico ───────────────
     instinct = {
-        weight = 3, duration = 600,
+        weight = 3, duration = 300,
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.PANIC) or 0
@@ -284,7 +284,7 @@ local DEFS = {
     -- inventory:setMaxWeight() não existe na API Lua B42.
     -- Surrogate: reduz DISCOMFORT gradualmente (sensação de carga mais leve)
     backpack = {
-        weight = 4, duration = 1800,
+        weight = 4, duration = 300,
         apply = function(player, legendary, data)
             data.rate = legendary and 0.003 or 0.002
         end,
@@ -299,7 +299,7 @@ local DEFS = {
 
     -- ── Cura Natural: reduz dor gradualmente (B42: CharacterStat.PAIN) ──
     natural_heal = {
-        weight = 6, duration = 1800,
+        weight = 6, duration = 300,
         apply = function(player, legendary, data)
             data.rate = legendary and 0.003 or 0.002
         end,
@@ -314,7 +314,7 @@ local DEFS = {
 
     -- ── Corpo Resistente: restaura endurance gradualmente ─────
     resistant = {
-        weight = 6, duration = 1200,
+        weight = 6, duration = 300,
         apply = function(player, legendary, data)
             data.rate = legendary and 0.004 or 0.002
         end,
@@ -327,7 +327,7 @@ local DEFS = {
 
     -- ── Bênção da Coragem: reduz pânico gradualmente ─────────
     courage = {
-        weight = 5, duration = 1800,
+        weight = 5, duration = 300,
         apply = function(player, legendary, data)
             data.rate = legendary and 0.003 or 0.002
         end,

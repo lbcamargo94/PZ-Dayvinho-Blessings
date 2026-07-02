@@ -23,8 +23,8 @@ DayvinhoBlessings_Main = {}
 -- ── Constantes ────────────────────────────────────────────────
 
 local ITEM_TYPE      = "Base.DayvinhoDeBolso"
-local TIMER_INTERVAL = 1440   -- segundos reais (24 min real ≈ 1 dia in-game a 60x)
-local COOLDOWN_HOURS = 24     -- horas in-game entre bênçãos
+local TIMER_INTERVAL = 60     -- segundos reais (1 hora in-game a 60x) — teste
+local COOLDOWN_HOURS = 1      -- horas in-game entre bênçãos — teste
 local TICK_INTERVAL  = 2      -- segundos entre chamadas onTick dos efeitos
 
 -- ── Estado global ─────────────────────────────────────────────

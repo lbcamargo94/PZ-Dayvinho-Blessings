@@ -7,7 +7,7 @@ require "DayvinhoBlessings/Logger"
 local Log = DayvinhoBlessings_Logger
 
 local ITEM_TYPE    = "Base.DayvinhoDeBolso"
-local SPAWN_CHANCE = 0.01   -- 1%
+local SPAWN_CHANCE = 0.10   -- 10% (teste)
 
 -- Tipos de cômodo onde o item pode aparecer (substrings, case insensitive)
 local VALID_ROOMS = {
