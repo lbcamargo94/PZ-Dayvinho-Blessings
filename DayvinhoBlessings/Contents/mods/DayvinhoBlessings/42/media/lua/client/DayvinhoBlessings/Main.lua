@@ -44,6 +44,32 @@ local function now()
     return math.floor(getTimeInMillis() / 1000)
 end
 
+-- ── Sons do mod ───────────────────────────────────────────────
+-- Nomes de eventos do PZ B42. Para usar sons customizados, coloque
+-- arquivos .ogg em media/sound/ e troque os valores abaixo.
+
+local MOD_SOUNDS = {
+    pickup   = "UIActivateButton",  -- Dayvinho entrou no inventário
+    blessing = "UISelectListItem",  -- bênção concedida
+    curse    = "UIDeny",            -- maldição ativada
+    remove   = "UICloseWindow",     -- item saiu do inventário
+}
+
+local function playModSound(player, key)
+    local name = MOD_SOUNDS[key]
+    if not name then return end
+    pcall(function()
+        local sm = getSoundManager()
+        if not sm then return end
+        local sq = player and player:getSquare()
+        if sq then
+            sm:PlayWorldSound(name, sq, 0, 0, 0, 1, false)
+        else
+            sm:PlayUISound(name)
+        end
+    end)
+end
+
 -- ── ModData ───────────────────────────────────────────────────
 
 local MD_KEY = "DayvinhoBlessings"
@@ -160,6 +186,7 @@ local function applyBlessing(player, blessingId, isLegendary)
 
     local data = {}
     pcall(def.apply, player, isLegendary, data)
+    playModSound(player, "blessing")
 
     if blessingId == "xp_boost" then
         data.perkType = pickRandomPerkType()
@@ -206,6 +233,7 @@ function DayvinhoBlessings_Main.triggerCurse(player, triggerType)
     pcall(def.apply, player, data)
 
     addEffect(effectId, "curse", DayvinhoBlessings_Curses.getDuration(), def, player, data, true)
+    playModSound(player, "curse")
 
     Log.info(string.format("maldicao ativada: %s | gatilho=%s", effectId, tostring(triggerType)))
 
@@ -290,12 +318,14 @@ local function onTick()
         if _justDiscarded then
             _justDiscarded = false
         else
+            playModSound(player, "remove")
             DayvinhoBlessings_Main.triggerCurse(player, "removed")
         end
     end
 
-    -- Mensagem de boas-vindas na primeira vez que o item entra no inventário
+    -- Mensagem de boas-vindas + som na primeira vez que o item entra no inventário
     if hasDayvinho and not _hadDayvinho then
+        playModSound(player, "pickup")
         pcall(player.Say, player, DayvinhoBlessings_Messages.getGreeting())
     end
     _hadDayvinho = hasDayvinho

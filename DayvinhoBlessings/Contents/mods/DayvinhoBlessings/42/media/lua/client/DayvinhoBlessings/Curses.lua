@@ -265,6 +265,14 @@ local function onDiscardDayvinho(playerNum, dayvinhoItem)
         DayvinhoBlessings_Main.markDiscarded()
     end
 
+    -- Som de remoção (onTick vai pular o som neste caso por causa do flag acima)
+    pcall(function()
+        local sm = getSoundManager()
+        if sm and player:getSquare() then
+            sm:PlayWorldSound("UICloseWindow", player:getSquare(), 0, 0, 0, 1, false)
+        end
+    end)
+
     pcall(function()
         player:getInventory():Remove(dayvinhoItem)
     end)
