@@ -3,6 +3,7 @@
 --
 --  Fluxo:
 --    OnGameStart  → inicializa estado, constrói cache de perks
+--    OnLoad       → restaura efeitos salvos no ModData (ao carregar save)
 --    OnTick       → processa efeitos ativos; dispara timer a cada 1 dia in-game
 --    LevelPerk    → aplica bônus de XP quando xp_boost está ativo
 --
@@ -66,7 +67,6 @@ local function playModSound(player, key)
         if not sm then return end
         local sq = player and player:getSquare()
         if sq then
-            -- Verifica existência do método antes de chamar (evita nil escape)
             local fn = sm.PlayWorldSound
             if fn then fn(sm, name, sq, 0, 0, 0, 1, false) end
         else
@@ -74,6 +74,17 @@ local function playModSound(player, key)
             if fn then fn(sm, name) end
         end
     end)
+end
+
+-- ── Fala do Dayvinho ─────────────────────────────────────────
+-- Exibe a mensagem na bolha de fala (curta) e no HUD (12s).
+
+local function dayvinhaSay(player, msg)
+    if not msg or msg == "" then return end
+    pcall(player.Say, player, msg)
+    if DayvinhoBlessings_HUD then
+        pcall(DayvinhoBlessings_HUD.showSpeech, msg)
+    end
 end
 
 -- ── ModData ───────────────────────────────────────────────────
@@ -84,6 +95,70 @@ local function getMD(player)
     local md = player:getModData()
     if not md[MD_KEY] then md[MD_KEY] = {} end
     return md[MD_KEY]
+end
+
+-- ── Persistência de efeitos ───────────────────────────────────
+-- Salva a lista de efeitos ativos no ModData do jogador.
+-- O PZ serializa o ModData automaticamente ao salvar o jogo.
+
+local function saveEffects(player)
+    pcall(function()
+        local md = getMD(player)
+        local saved = {}
+        for _, eff in ipairs(_activeEffects) do
+            if eff.endTime then
+                saved[#saved + 1] = {
+                    id      = eff.id,
+                    kind    = eff.kind,
+                    endTime = eff.endTime,
+                    persist = eff.persist,
+                    data    = eff.data,
+                }
+            end
+        end
+        md.effects = saved
+    end)
+end
+
+-- Restaura efeitos do ModData ao carregar um save.
+-- Efeitos já expirados são descartados.
+-- As funções onTick/onRemove são reconectadas via getDef().
+
+local function restoreEffects(player)
+    pcall(function()
+        local md = getMD(player)
+        local saved = md.effects
+        if not saved or #saved == 0 then return end
+        local t       = now()
+        local restored = 0
+        for _, entry in ipairs(saved) do
+            local remaining = entry.endTime and (entry.endTime - t) or nil
+            if remaining and remaining > 0 then
+                local def
+                if entry.kind == "blessing" then
+                    def = DayvinhoBlessings_Blessings.getDef(entry.id)
+                elseif entry.kind == "curse" then
+                    def = DayvinhoBlessings_Curses.getDef(entry.id)
+                end
+                if def then
+                    -- addEffect usa remaining como duração → endTime ≈ original
+                    local endTime = now() + remaining
+                    local eff = {
+                        id       = entry.id,
+                        kind     = entry.kind,
+                        endTime  = endTime,
+                        onTick   = def.onTick,
+                        onRemove = def.onRemove,
+                        data     = entry.data or {},
+                        persist  = entry.persist == true,
+                    }
+                    _activeEffects[#_activeEffects + 1] = eff
+                    restored = restored + 1
+                end
+            end
+        end
+        Log.info(string.format("efeitos restaurados: %d/%d", restored, #saved))
+    end)
 end
 
 -- ── Cache de perks ────────────────────────────────────────────
@@ -159,6 +234,7 @@ local function clearAllEffects(player)
 end
 
 local function tickEffects(player, t)
+    local changed = false
     local i = #_activeEffects
     while i >= 1 do
         local eff = _activeEffects[i]
@@ -170,15 +246,17 @@ local function tickEffects(player, t)
                 msg = DayvinhoBlessings_Messages.getCurseEnd()
             end
             if msg then
-                pcall(player.Say, player, msg)
+                dayvinhaSay(player, msg)
                 _expiryNotif = { isCurse = eff.kind == "curse", showUntil = t + 6 }
             end
             removeEffect(i, player)
+            changed = true
         elseif eff.onTick then
             pcall(eff.onTick, player, eff.data)
         end
         i = i - 1
     end
+    return changed
 end
 
 -- ── Aplicar bênção ────────────────────────────────────────────
@@ -209,7 +287,8 @@ local function applyBlessing(player, blessingId, isLegendary)
         addEffect(blessingId, "blessing", dur, def, player, data)
     end
 
-    pcall(player.Say, player, DayvinhoBlessings_Messages.getForBlessing(blessingId))
+    dayvinhaSay(player, DayvinhoBlessings_Messages.getForBlessing(blessingId))
+    saveEffects(player)
 end
 
 -- ── API pública: marca que Curses.lua já tratou a remoção ─────
@@ -240,10 +319,11 @@ function DayvinhoBlessings_Main.triggerCurse(player, triggerType)
 
     addEffect(effectId, "curse", DayvinhoBlessings_Curses.getDuration(), def, player, data, true)
     playModSound(player, "curse")
+    saveEffects(player)
 
     Log.info(string.format("maldicao ativada: %s | gatilho=%s", effectId, tostring(triggerType)))
 
-    pcall(player.Say, player, DayvinhoBlessings_Messages.getCurseMsg(triggerType))
+    dayvinhaSay(player, DayvinhoBlessings_Messages.getCurseMsg(triggerType))
 end
 
 -- ── Lógica do timer (cada 1 dia in-game ≈ 24 min reais a 60x) ─
@@ -257,7 +337,7 @@ local function tryTrigger(player)
 
     -- 50% de chance de falhar
     if ZombRandFloat(0, 1) < 0.50 then
-        pcall(player.Say, player, DayvinhoBlessings_Messages.getFail())
+        dayvinhaSay(player, DayvinhoBlessings_Messages.getFail())
         return
     end
 
@@ -291,6 +371,19 @@ local function onGameStart()
     end
 
     _initialized = true
+end
+
+-- OnLoad dispara ao carregar um save existente (após OnGameStart).
+-- Restaura efeitos do ModData e inicializa _hadDayvinho para
+-- evitar a mensagem de boas-vindas espúria e maldição falsa.
+local function onLoad()
+    local player = getSpecificPlayer(0)
+    if not player then return end
+    restoreEffects(player)
+    _hadDayvinho     = playerHasDayvinho(player)
+    _lastTriggerTime = now()
+    _lastTickTime    = now()
+    Log.info("estado restaurado no OnLoad")
 end
 
 local function onTick()
@@ -332,18 +425,21 @@ local function onTick()
     -- Mensagem de boas-vindas + som na primeira vez que o item entra no inventário
     if hasDayvinho and not _hadDayvinho then
         playModSound(player, "pickup")
-        pcall(player.Say, player, DayvinhoBlessings_Messages.getGreeting())
+        dayvinhaSay(player, DayvinhoBlessings_Messages.getGreeting())
     end
     _hadDayvinho = hasDayvinho
 
     -- Sem o item: remove apenas efeitos não-persistentes (bênçãos).
     -- Maldições (persist=true) continuam até expirar naturalmente.
     if not hasDayvinho then
+        local removed = false
         for i = #_activeEffects, 1, -1 do
             if not _activeEffects[i].persist then
                 removeEffect(i, player)
+                removed = true
             end
         end
+        if removed then saveEffects(player) end
     end
 
     local t = now()
@@ -351,7 +447,13 @@ local function onTick()
     -- Processa todos os efeitos ativos (inclusive maldições sem o item)
     if #_activeEffects > 0 and t - _lastTickTime >= TICK_INTERVAL then
         _lastTickTime = t
-        tickEffects(player, t)
+        local changed = tickEffects(player, t)
+        if changed then saveEffects(player) end
+    end
+
+    -- Limpa notificação de expiração expirada
+    if _expiryNotif and t >= _expiryNotif.showUntil then
+        _expiryNotif = nil
     end
 
     -- Dispara novo timer apenas quando o Dayvinho está presente
@@ -432,5 +534,6 @@ function DayvinhoBlessings_Main.getHUDInfoAll()
 end
 
 Events.OnGameStart.Add(onGameStart)
+Events.OnLoad.Add(onLoad)
 Events.OnTick.Add(onTick)
 Events.LevelPerk.Add(onLevelPerk)

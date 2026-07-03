@@ -107,8 +107,14 @@ local DEFAULT_W = 260
 local MIN_W     = 200
 local HEADER_H  = 26   -- altura do cabecalho (titulo + botao X)
 local ROW_H     = 54   -- altura de cada linha de efeito (3 linhas de texto)
+local SPEECH_H  = 28   -- altura da linha de fala do Dayvinho
 local FOOTER_H  = 14   -- espaco inferior para handle de resize
 local HANDLE    = 12   -- tamanho do handle de resize
+
+-- ── Estado de fala ────────────────────────────────────────────
+
+local _speechText  = nil
+local _speechUntil = 0
 
 -- ── Classe HUD ────────────────────────────────────────────────
 
@@ -226,9 +232,16 @@ function DayvinhoBlessings_HUDPanel:render()
     local n = infoList and #infoList or 0
 
     local w = self:getWidth()
+    local t = math.floor(getTimeInMillis() / 1000)
 
-    -- Ajuste automatico de altura com base no numero de efeitos
-    local targetH = HEADER_H + math.max(1, n) * ROW_H + FOOTER_H
+    -- Verifica fala ativa
+    local hasSpeech = _speechText ~= nil and t < _speechUntil
+    if not hasSpeech then _speechText = nil end
+
+    -- Ajuste automatico de altura com base no numero de efeitos e fala
+    local effectH = math.max(1, n) * ROW_H
+    local speechH = hasSpeech and SPEECH_H or 0
+    local targetH = HEADER_H + effectH + speechH + FOOTER_H
     if math.abs(self:getHeight() - targetH) > 1 then
         self:setHeight(targetH)
     end
@@ -273,9 +286,6 @@ function DayvinhoBlessings_HUDPanel:render()
 
     if n == 0 then
         self:drawText("Nenhum efeito ativo", 8, HEADER_H + 18, 0.38, 0.38, 0.38, 1, UIFont.Small)
-        -- Handle de resize
-        self:drawRect(w - HANDLE, h - HANDLE, HANDLE, HANDLE, 0.7, 0.40, 0.40, 0.50)
-        return
     end
 
     -- ── Linhas de efeito ─────────────────────────────────────
@@ -318,6 +328,17 @@ function DayvinhoBlessings_HUDPanel:render()
         end
     end
 
+    -- ── Linha de fala do Dayvinho ─────────────────────────────
+    if hasSpeech then
+        local sy = HEADER_H + effectH
+        -- Separador
+        self:drawRect(0, sy, w, 1, 0.5, 0.70, 0.55, 0.10, 0.10)
+        -- Fundo levemente destacado
+        self:drawRect(0, sy + 1, w, SPEECH_H - 2, 0.12, 0.10, 0.06, 0.04, 0.04)
+        -- Texto da fala
+        self:drawText("[Dayvinho] " .. _speechText, 8, sy + 6, 0.95, 0.82, 0.28, 1, UIFont.Small)
+    end
+
     -- Handle de resize (canto inferior direito)
     self:drawRect(w - HANDLE, h - HANDLE, HANDLE, HANDLE, 0.7, 0.40, 0.40, 0.50)
 end
@@ -341,6 +362,19 @@ end
 function DayvinhoBlessings_HUD.show()
     if not _hudPanel then return end
     if not _hudPanel:isVisible() then
+        _hudPanel:setVisible(true)
+        _hudPanel:_saveLayout()
+    end
+end
+
+-- Exibe a fala do Dayvinho no HUD por `duration` segundos (padrão 12s).
+-- Abre o HUD automaticamente se estiver fechado.
+function DayvinhoBlessings_HUD.showSpeech(msg, duration)
+    if not msg or msg == "" then return end
+    _speechText  = msg
+    _speechUntil = math.floor(getTimeInMillis() / 1000) + (duration or 12)
+    -- Garante que o HUD esteja visível para a fala aparecer
+    if _hudPanel and not _hudPanel:isVisible() then
         _hudPanel:setVisible(true)
         _hudPanel:_saveLayout()
     end
