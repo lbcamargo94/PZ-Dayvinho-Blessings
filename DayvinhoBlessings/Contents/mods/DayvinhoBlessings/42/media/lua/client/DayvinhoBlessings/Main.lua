@@ -45,15 +45,29 @@ local function now()
 end
 
 -- ── Sons do mod ───────────────────────────────────────────────
--- Nomes de eventos do PZ B42. Para usar sons customizados, coloque
--- arquivos .ogg em media/sound/ e troque os valores abaixo.
 
+-- Aliases internos → nome do arquivo .ogg (sem extensão) em media/sound/
+-- Sons nativos do PZ usados como fallback para pickup e remoção.
 local MOD_SOUNDS = {
-    pickup   = "UIActivateButton",  -- Dayvinho entrou no inventário
-    blessing = "UISelectListItem",  -- bênção concedida
-    curse    = "UIDeny",            -- maldição ativada
-    remove   = "UICloseWindow",     -- item saiu do inventário
+    pickup   = "UIActivateButton",       -- Dayvinho entrou no inventário (PZ nativo)
+    blessing = "DayBless_BlessGranted",  -- bênção concedida (custom)
+    curse    = "DayBless_CurseActive",   -- maldição ativada (custom)
+    remove   = "UICloseWindow",          -- item saiu do inventário (PZ nativo)
 }
+
+-- Registra os arquivos .ogg customizados no SoundManager do PZ.
+-- Deve ocorrer antes do primeiro uso; OnGameBoot é o ponto mais seguro.
+local function registerCustomSounds()
+    pcall(function()
+        local sm = getSoundManager()
+        if not sm then return end
+        sm:addSound("DayBless_BlessGranted", "media/sound/bencao-concedida.ogg",  false, false)
+        sm:addSound("DayBless_CurseActive",  "media/sound/maldicao-ativada.ogg",   false, false)
+        Log.info("sons customizados registrados")
+    end)
+end
+
+Events.OnGameBoot.Add(registerCustomSounds)
 
 local function playModSound(player, key)
     local name = MOD_SOUNDS[key]
