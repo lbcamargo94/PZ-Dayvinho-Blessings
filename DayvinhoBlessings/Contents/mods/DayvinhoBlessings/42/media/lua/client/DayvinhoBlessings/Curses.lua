@@ -309,11 +309,13 @@ local function onDiscardDayvinho(playerNum, dayvinhoItem)
     end
 
     -- Som de remoção (onTick vai pular o som neste caso por causa do flag acima)
+    -- playUISound: inicial minuscula (nome Java exato). "UICloseWindow" e som de UI,
+    -- nao de mundo — usar PlayWorldSound com ele nao dispara o audio correto.
     pcall(function()
         local sm = getSoundManager()
-        if sm and player:getSquare() then
-            sm:PlayWorldSound("UICloseWindow", player:getSquare(), 0, 0, 0, 1, false)
-        end
+        if not sm then return end
+        local fn = sm.playUISound
+        if fn then fn(sm, "UICloseWindow") end
     end)
 
     pcall(function()

@@ -153,6 +153,11 @@
     "UI_DayCurse_Run_3": "Dayvinho balança a cabeça devagar. A maldição já está ativa.",
     "UI_DayCurse_Run_4": "O anão testemunha sua direção. Ele não ficou impressionado. Amaldiçoado.",
 
+    "UI_DayCurse_Removed_1": "Dayvinho percebe que foi deixado para trás. Seus olhos escurecem. Amaldiçoado!",
+    "UI_DayCurse_Removed_2": "O anão grita do fundo do container. 'Eu não sou bagagem!' Maldição ativada.",
+    "UI_DayCurse_Removed_3": "Dayvinho foi separado de você. Ele não perdoa abandono.",
+    "UI_DayCurse_Removed_4": "O bolsinho ficou vazio. Dayvinho nota. A maldição não espera.",
+
     "UI_DayCurse_End_1": "A maldição de Dayvinho se levanta... desta vez.",
     "UI_DayCurse_End_2": "O anão cruza os braços. A maldição foi cumprida.",
     "UI_DayCurse_End_3": "Dayvinho solta um suspiro. A escuridão some.",

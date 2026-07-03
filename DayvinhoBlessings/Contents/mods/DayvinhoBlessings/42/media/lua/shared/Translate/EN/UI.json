@@ -153,6 +153,11 @@
     "UI_DayCurse_Run_3": "Dayvinho shakes his head slowly. The curse is already active.",
     "UI_DayCurse_Run_4": "The gnome witnesses your driving. He is not impressed. Cursed.",
 
+    "UI_DayCurse_Removed_1": "Dayvinho notices he was left behind. His eyes darken. Cursed!",
+    "UI_DayCurse_Removed_2": "The gnome yells from inside the container. 'I am not luggage!' Curse activated.",
+    "UI_DayCurse_Removed_3": "Dayvinho was separated from you. He does not forgive abandonment.",
+    "UI_DayCurse_Removed_4": "The pocket is empty. Dayvinho notices. The curse does not wait.",
+
     "UI_DayCurse_End_1": "Dayvinho's curse lifts... this time.",
     "UI_DayCurse_End_2": "The gnome crosses his arms. The curse is spent.",
     "UI_DayCurse_End_3": "Dayvinho exhales slowly. The darkness fades.",

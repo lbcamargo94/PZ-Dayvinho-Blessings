@@ -50,6 +50,7 @@ local _keys = {
     curse_trash   = { "UI_DayCurse_Trash_1",   "UI_DayCurse_Trash_2",   "UI_DayCurse_Trash_3",   "UI_DayCurse_Trash_4"   },
     curse_explode = { "UI_DayCurse_Explode_1", "UI_DayCurse_Explode_2", "UI_DayCurse_Explode_3", "UI_DayCurse_Explode_4" },
     curse_run     = { "UI_DayCurse_Run_1",     "UI_DayCurse_Run_2",     "UI_DayCurse_Run_3",     "UI_DayCurse_Run_4"     },
+    curse_removed = { "UI_DayCurse_Removed_1", "UI_DayCurse_Removed_2", "UI_DayCurse_Removed_3", "UI_DayCurse_Removed_4" },
 
     -- ── Fim da maldição ───────────────────────────────────────
     CurseEnd = { "UI_DayCurse_End_1","UI_DayCurse_End_2","UI_DayCurse_End_3" },

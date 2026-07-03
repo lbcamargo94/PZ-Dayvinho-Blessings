@@ -70,7 +70,8 @@ local function playModSound(player, key)
             local fn = sm.PlayWorldSound
             if fn then fn(sm, name, sq, 0, 0, 0, 1, false) end
         else
-            local fn = sm.PlayUISound
+            -- playUISound: inicial minuscula (nome Java exato do metodo)
+            local fn = sm.playUISound
             if fn then fn(sm, name) end
         end
     end)
