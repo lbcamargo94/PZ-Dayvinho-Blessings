@@ -154,30 +154,15 @@ local CURSE_EFFECTS = {
     -- Helicóptero: dispara o evento de helicóptero + ruído massivo de zumbis
     helicopter = {
         apply = function(player, data)
-            -- Tenta disparar o evento real do jogo (B42: HeliEvent.Start)
+            -- testHelicopter() e global Lua registrado por LuaManager$GlobalObject
+            -- (mesmo que o painel de debug do PZ usa). Chamar nil escapa do pcall
+            -- no Kahlua, entao verificamos existencia antes de chamar.
             local triggered = false
             pcall(function()
-                local fn = HeliEvent and HeliEvent.Start
+                local fn = testHelicopter
                 if fn then fn(); triggered = true end
             end)
-            -- Fallback: tenta via GameTime
-            if not triggered then
-                pcall(function()
-                    local gt = getGameTime and getGameTime()
-                    local fn = gt and gt.triggerHelicopter
-                    if fn then fn(gt); triggered = true end
-                end)
-            end
-            -- Garantido: som de helicóptero + ruído enorme de zumbis
-            pcall(function()
-                local sm = getSoundManager()
-                local sq  = player:getSquare()
-                if sm and sq then
-                    local fn = sm.PlayWorldSound
-                    if fn then fn(sm, "HelicopterFly", sq, 0, 0, 200, 1, false) end
-                end
-            end)
-            -- Ruído de 200 blocos para chamar zumbis do mapa inteiro
+            -- Ruído de 200 blocos para garantir que zumbis sejam atraídos
             pcall(function()
                 addSound(player, player:getX(), player:getY(), player:getZ(), 200, 100)
             end)
