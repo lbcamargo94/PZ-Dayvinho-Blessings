@@ -1,17 +1,16 @@
--- ============================================================
---  Curses.lua — Sistema de maldições do Dayvinho de Bolso
+﻿-- ============================================================
+--  Curses.lua â€” Sistema de maldiÃ§Ãµes do Dayvinho de Bolso
 --
---  Acionado quando o jogador tem o item no inventário e executa
---  uma ação destrutiva via menu de contexto de objeto no mundo.
+--  MaldiÃ§Ãµes sÃ£o acionadas de duas formas:
+--    1. Aleatoriamente com 2% de chance a cada ciclo do timer
+--       (via Main.lua â†’ tryTrigger â†’ triggerCurse("random"))
+--    2. Explicitamente pelo jogador via opÃ§Ã£o "Descartar"
+--       no menu de contexto do inventÃ¡rio.
 --
---  Hook: OnFillWorldObjectContextMenu
---    (OnFillInventoryObjectContextMenu NÃO recebe opções
---     Burn/Destroy/Trash/Explode/RunOver no B42)
---
---  9 efeitos possíveis, duração 10 minutos reais (600s)
+--  11 efeitos possÃ­veis, duraÃ§Ã£o 10 minutos reais (600s)
 --
 --  API de stats (B42): CharacterStat enum
---    getLuck/setLuck (inexistentes) → CharacterStat.MORALE
+--    getLuck/setLuck (inexistentes) â†’ CharacterStat.MORALE
 -- ============================================================
 
 require "DayvinhoBlessings/Messages"
@@ -20,7 +19,7 @@ local Log = DayvinhoBlessings_Logger
 
 DayvinhoBlessings_Curses = {}
 
--- ── Helpers internos ──────────────────────────────────────────
+-- â”€â”€ Helpers internos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function stats(player)
     local ok, s = pcall(function() return player:getStats() end)
@@ -29,13 +28,13 @@ end
 
 local function clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 
-local CURSE_DURATION = 600  -- 10 minutos reais
+local CURSE_DURATION = 1200  -- 20 minutos reais
 
--- ── 9 definições de efeito de maldição ───────────────────────
+-- â”€â”€ 9 definiÃ§Ãµes de efeito de maldiÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local CURSE_EFFECTS = {
 
-    -- Má Sorte: reduz morale (surrogate; getLuck/setLuck não existem no B42)
+    -- MÃ¡ Sorte: reduz morale (surrogate; getLuck/setLuck nÃ£o existem no B42)
     bad_luck = {
         apply = function(player, data)
             local s = stats(player); if not s then return end
@@ -49,7 +48,7 @@ local CURSE_EFFECTS = {
         end,
     },
 
-    -- Pânico Acelerado: aumenta pânico gradualmente
+    -- PÃ¢nico Acelerado: aumenta pÃ¢nico gradualmente
     panic_faster = {
         apply = function(player, data)
             data.rate = 0.003
@@ -88,7 +87,7 @@ local CURSE_EFFECTS = {
         end,
     },
 
-    -- Mais Barulho: aumento de pânico gradual (ruído surrogate)
+    -- Mais Barulho: aumento de pÃ¢nico gradual (ruÃ­do surrogate)
     more_noise = {
         apply = function(player, data)
             data.rate = 0.002
@@ -118,7 +117,7 @@ local CURSE_EFFECTS = {
         end,
     },
 
-    -- Alucinação: narrativo + infelicidade leve
+    -- AlucinaÃ§Ã£o: narrativo + infelicidade leve
     hallucination = {
         apply = function(player, data)
             local s = stats(player); if not s then return end
@@ -127,7 +126,7 @@ local CURSE_EFFECTS = {
         end,
     },
 
-    -- Som Aleatório: toca um som surpreendente do jogo e atrai zumbis
+    -- Som AleatÃ³rio: toca um som surpreendente do jogo e atrai zumbis
     random_sound = {
         apply = function(player, data)
             local SOUNDS = {
@@ -136,7 +135,7 @@ local CURSE_EFFECTS = {
             }
             local picked = SOUNDS[ZombRand(#SOUNDS) + 1]
             data.soundName = picked
-            -- Toca o som no mundo (outros jogadores e zumbis ouvem o ruído)
+            -- Toca o som no mundo (outros jogadores e zumbis ouvem o ruÃ­do)
             pcall(function()
                 local sm = getSoundManager()
                 local sq  = player:getSquare()
@@ -144,14 +143,14 @@ local CURSE_EFFECTS = {
                 local fn = sm.PlayWorldSound
                 if fn then fn(sm, picked, sq, 0, 0, 50, 1, false) end
             end)
-            -- Ruído para atrair zumbis próximos (raio 50, volume 20)
+            -- RuÃ­do para atrair zumbis prÃ³ximos (raio 50, volume 20)
             pcall(function()
                 addSound(player, player:getX(), player:getY(), player:getZ(), 50, 20)
             end)
         end,
     },
 
-    -- Helicóptero: dispara o evento de helicóptero + ruído massivo de zumbis
+    -- HelicÃ³ptero: dispara o evento de helicÃ³ptero + ruÃ­do massivo de zumbis
     helicopter = {
         apply = function(player, data)
             -- testHelicopter() e global Lua registrado por LuaManager$GlobalObject
@@ -162,7 +161,7 @@ local CURSE_EFFECTS = {
                 local fn = testHelicopter
                 if fn then fn(); triggered = true end
             end)
-            -- Ruído de 200 blocos para garantir que zumbis sejam atraídos
+            -- RuÃ­do de 200 blocos para garantir que zumbis sejam atraÃ­dos
             pcall(function()
                 addSound(player, player:getX(), player:getY(), player:getZ(), 200, 100)
             end)
@@ -186,7 +185,7 @@ function DayvinhoBlessings_Curses.getDuration()
     return CURSE_DURATION
 end
 
--- ── Verificação de posse do item ──────────────────────────────
+-- â”€â”€ VerificaÃ§Ã£o de posse do item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local ITEM_TYPE = "Base.DayvinhoDeBolso"
 
@@ -197,86 +196,14 @@ local function playerHasDayvinho(player)
     return ok and has
 end
 
--- ── Mapeamento nome de opção → tipo de maldição ───────────────
-
-local TRIGGER_LABELS = {
-    burn    = { "burn", "queimar", "light fire", "atear fogo", "set fire" },
-    destroy = { "destroy", "destruir", "smash", "quebrar", "break" },
-    trash   = { "trash", "lixo", "throw away", "discard", "descartar", "delete", "deletar", "remove" },
-    explode = { "explode", "explodir", "detonate", "detonar" },
-    run     = { "run over", "atropelar", "drive over", "crush" },
-}
-
-local function triggerTypeForLabel(label)
-    if not label then return nil end
-    local lo = label:lower()
-    for triggerType, patterns in pairs(TRIGGER_LABELS) do
-        for _, pattern in ipairs(patterns) do
-            if lo:find(pattern, 1, true) then return triggerType end
-        end
-    end
-    return nil
-end
-
--- ── Wrapping de opções do menu de contexto ────────────────────
--- Em B42, context.options é uma tabela Lua com entradas { name, onMouseUp, target, ... }
--- Envolvemos cada opção destrutiva encontrada com um callback extra.
-
-local function wrapDestructiveOptions(context, player)
-    local opts = context.options
-    if type(opts) ~= "table" then return end
-
-    for _, opt in ipairs(opts) do
-        if type(opt) == "table" then
-            local name    = rawget(opt, "name") or ""
-            local trigger = triggerTypeForLabel(tostring(name))
-            if trigger then
-                Log.debug("opcao destrutiva detectada: " .. tostring(name) .. " -> " .. trigger)
-                local origOnMouseUp = rawget(opt, "onMouseUp")
-                opt.onMouseUp = function(target, ...)
-                    if origOnMouseUp then
-                        pcall(origOnMouseUp, target, ...)
-                    end
-                    if DayvinhoBlessings_Main then
-                        DayvinhoBlessings_Main.triggerCurse(player, trigger)
-                    end
-                end
-            end
-        end
-    end
-end
-
--- ── Hook no menu de contexto de objetos no mundo ─────────────
--- OnFillWorldObjectContextMenu inclui opções Burn/Destroy/Explode/RunOver
--- que não aparecem no menu de inventário.
-
-local function onContextMenu(playerNum, context, worldobjects, test)
-    local player
-    if type(playerNum) == "number" then
-        player = getSpecificPlayer(playerNum)
-    else
-        player = playerNum
-    end
-    if not player then return end
-    if not playerHasDayvinho(player) then return end
-
-    pcall(wrapDestructiveOptions, context, player)
-end
-
-if not DayvinhoBlessings_Curses._contextMenuRegistered then
-    Events.OnFillWorldObjectContextMenu.Add(onContextMenu)
-    DayvinhoBlessings_Curses._contextMenuRegistered = true
-    Log.info("hook OnFillWorldObjectContextMenu registrado")
-end
-
--- ── Hook no menu de contexto do inventário (Descartar Dayvinho) ─
+-- â”€â”€ Hook no menu de contexto do inventÃ¡rio (Descartar Dayvinho) â”€
 -- OnFillInventoryObjectContextMenu(playerNum, context, items)
--- Adiciona opção "Descartar" que remove o item e dispara maldição.
+-- Adiciona opÃ§Ã£o "Descartar" que remove o item e dispara maldiÃ§Ã£o.
 --
--- NÃO iteramos `items`: o formato varia entre mods (ex: CleanUI passa
--- tabelas Lua, não objetos Java). Chamar entry:getFullType() em tabelas
--- Lua lança RuntimeException no Kahlua que escapa do pcall do Lua.
--- Solução: buscar o Dayvinho direto do inventário do jogador.
+-- NÃƒO iteramos `items`: o formato varia entre mods (ex: CleanUI passa
+-- tabelas Lua, nÃ£o objetos Java). Chamar entry:getFullType() em tabelas
+-- Lua lanÃ§a RuntimeException no Kahlua que escapa do pcall do Lua.
+-- SoluÃ§Ã£o: buscar o Dayvinho direto do inventÃ¡rio do jogador.
 
 local function getDayvinhoFromInventory(player)
     local found = nil
@@ -302,15 +229,14 @@ local function onDiscardDayvinho(playerNum, dayvinhoItem)
     end
     if not player then return end
 
-    -- Sinaliza que esta remoção já será tratada aqui;
-    -- o onTick em Main.lua vai ignorar a transição e não duplicar a maldição.
+    -- Sinaliza para o onTick em Main.lua ignorar esta remoÃ§Ã£o (evita dupla maldiÃ§Ã£o).
     if DayvinhoBlessings_Main then
         DayvinhoBlessings_Main.markDiscarded()
     end
 
-    -- Som de remoção (onTick vai pular o som neste caso por causa do flag acima)
+    -- Som de remoÃ§Ã£o
     -- playUISound: inicial minuscula (nome Java exato). "UICloseWindow" e som de UI,
-    -- nao de mundo — usar PlayWorldSound com ele nao dispara o audio correto.
+    -- nao de mundo â€” usar PlayWorldSound com ele nao dispara o audio correto.
     pcall(function()
         local sm = getSoundManager()
         if not sm then return end
@@ -336,7 +262,7 @@ local function onInventoryContextMenu(playerNum, context, items)
     end
     if not player then return end
 
-    -- Opção toggle do HUD: visível quando Dayvinho está no inventário ou há efeito ativo
+    -- OpÃ§Ã£o toggle do HUD: visÃ­vel quando Dayvinho estÃ¡ no inventÃ¡rio ou hÃ¡ efeito ativo
     local hasDay = playerHasDayvinho(player)
     local hasEff = DayvinhoBlessings_Main and DayvinhoBlessings_Main.hasActiveEffects()
     if (hasDay or hasEff) and DayvinhoBlessings_HUD then
@@ -345,7 +271,7 @@ local function onInventoryContextMenu(playerNum, context, items)
         context:addOption(label, nil, function() DayvinhoBlessings_HUD.toggle() end)
     end
 
-    -- Opção Descartar: apenas se o item estiver no inventário
+    -- OpÃ§Ã£o Descartar: apenas se o item estiver no inventÃ¡rio
     if not hasDay then return end
     local dayvinhoItem = getDayvinhoFromInventory(player)
     if not dayvinhoItem then return end

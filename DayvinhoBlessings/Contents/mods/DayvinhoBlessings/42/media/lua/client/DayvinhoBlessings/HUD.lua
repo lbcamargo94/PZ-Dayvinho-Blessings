@@ -58,30 +58,30 @@ local DISPLAY_NAMES = {
 
 local DESCRIPTIONS = {
     -- Bencoes
-    xp_boost       = "+10% XP ganho em 1 habilidade sorteada",
-    luck           = "+10 de Luck enquanto ativo",
-    foraging       = "Raio de coleta aumentado em 15%",
-    gift           = "Item bonus no inventario",
+    xp_boost       = "+100% XP ganho em 1 habilidade sorteada",
+    luck           = "+20% Morale enquanto ativo",
+    foraging       = "+25% Morale enquanto ativo",
+    gift           = "2 itens aleatorios no inventario (3 se lendaria)",
     full_belly     = "Reduz fome gradualmente ao longo do tempo",
-    fresh_water    = "Reduz sede em 50% imediatamente",
-    rest           = "Reduz fadiga em 15% imediatamente",
+    fresh_water    = "Reduz sede em 70% imediatamente",
+    rest           = "Reduz fadiga em 30% imediatamente",
     spirit         = "Reduz estresse e tedio gradualmente",
-    good_mood      = "Reduz infelicidade em 25% imediatamente",
-    inner_peace    = "Reduz estresse em 30% imediatamente",
+    good_mood      = "Reduz infelicidade em 50% imediatamente",
+    inner_peace    = "Reduz estresse em 50% imediatamente",
     calm_sleep     = "Proximo sono sera mais reparador",
-    skilled_hands  = "Velocidade de acao +10% enquanto ativo",
-    fisherman      = "Multiplicador de pesca +10% enquanto ativo",
-    harvest        = "Plantas crescem mais rapido + bonus de espirito",
-    lumberjack     = "Mais toras por corte + bonus de endurance",
-    light_steps    = "Menos ruido ao se mover enquanto ativo",
-    sharp_eyes     = "Raio de coleta +12% enquanto ativo",
-    instinct       = "Reduz panico em 10% imediatamente",
+    skilled_hands  = "Endurance +20% enquanto ativo",
+    fisherman      = "+20% Morale enquanto ativo",
+    harvest        = "Reduz estresse em 15% imediatamente",
+    lumberjack     = "Endurance +20% imediatamente",
+    light_steps    = "Reduz panico em 15% imediatamente",
+    sharp_eyes     = "+25% Morale enquanto ativo",
+    instinct       = "Reduz panico em 30% imediatamente",
     backpack       = "Reduz desconforto de carga gradualmente",
-    natural_heal   = "Recuperacao de ferimentos gradual",
+    natural_heal   = "Reduz dor gradualmente",
     resistant      = "Restaura endurance gradualmente",
     courage        = "Reduz panico gradualmente ao longo do tempo",
     sun            = "Para a chuva imediatamente",
-    rainbow        = "Reduz infelicidade levemente",
+    rainbow        = "Reduz infelicidade em 15% imediatamente",
     -- Maldicoes
     bad_luck       = "Reduz Morale (surrogate de Luck) em 10%",
     panic_faster   = "Panico aumenta gradualmente a cada tick",
@@ -111,8 +111,9 @@ local SPEECH_H  = 28   -- altura da linha de fala do Dayvinho
 local FOOTER_H  = 14   -- espaco inferior para handle de resize
 local HANDLE    = 12   -- tamanho do handle de resize
 
--- ── Estado de fala ────────────────────────────────────────────
+-- ── Estado ────────────────────────────────────────────────────
 
+local _hudPanel    = nil
 local _speechText  = nil
 local _speechUntil = 0
 
@@ -290,7 +291,7 @@ function DayvinhoBlessings_HUDPanel:render()
 
     -- ── Linhas de efeito ─────────────────────────────────────
 
-    for idx, info in ipairs(infoList) do
+    for idx, info in ipairs(infoList or {}) do
         local ry = HEADER_H + (idx - 1) * ROW_H
 
         -- Cor do tipo
@@ -372,7 +373,7 @@ end
 function DayvinhoBlessings_HUD.showSpeech(msg, duration)
     if not msg or msg == "" then return end
     _speechText  = msg
-    _speechUntil = math.floor(getTimeInMillis() / 1000) + (duration or 12)
+    _speechUntil = math.floor(getTimeInMillis() / 1000) + (duration or 20)
     -- Garante que o HUD esteja visível para a fala aparecer
     if _hudPanel and not _hudPanel:isVisible() then
         _hudPanel:setVisible(true)
@@ -381,8 +382,6 @@ function DayvinhoBlessings_HUD.showSpeech(msg, duration)
 end
 
 -- ── Criacao e registro ────────────────────────────────────────
-
-local _hudPanel = nil
 
 local function _loadLayout()
     local x, y, w, locked, visible = DEFAULT_X, DEFAULT_Y, DEFAULT_W, false, true

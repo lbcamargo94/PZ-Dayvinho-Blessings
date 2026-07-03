@@ -1,16 +1,16 @@
--- ============================================================
---  Main.lua — Motor central do sistema de bênçãos/maldições
+﻿-- ============================================================
+--  Main.lua â€” Motor central do sistema de bÃªnÃ§Ã£os/maldiÃ§Ãµes
 --
 --  Fluxo:
---    OnGameStart  → inicializa estado, constrói cache de perks
---    OnLoad       → restaura efeitos salvos no ModData (ao carregar save)
---    OnTick       → processa efeitos ativos; dispara timer a cada 1 dia in-game
---    LevelPerk    → aplica bônus de XP quando xp_boost está ativo
+--    OnGameStart  â†’ inicializa estado, constrÃ³i cache de perks
+--    OnLoad       â†’ restaura efeitos salvos no ModData (ao carregar save)
+--    OnTick       â†’ processa efeitos ativos; dispara timer a cada TIMER_INTERVAL segundos
+--    LevelPerk    â†’ aplica bÃ´nus de XP quando xp_boost estÃ¡ ativo
 --
---  APIs do PZ (Kahlua) — NÃO disponíveis:
---    math.random()  → ZombRandFloat(0, 1)
---    math.random(n) → ZombRand(n) + 1
---    os.time()      → math.floor(getTimeInMillis() / 1000)
+--  APIs do PZ (Kahlua) â€” NÃƒO disponÃ­veis:
+--    math.random()  â†’ ZombRandFloat(0, 1)
+--    math.random(n) â†’ ZombRand(n) + 1
+--    os.time()      â†’ math.floor(getTimeInMillis() / 1000)
 -- ============================================================
 
 require "DayvinhoBlessings/Logger"
@@ -21,42 +21,41 @@ local Log = DayvinhoBlessings_Logger
 
 DayvinhoBlessings_Main = {}
 
--- ── Constantes ────────────────────────────────────────────────
+-- â”€â”€ Constantes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local ITEM_TYPE      = "Base.DayvinhoDeBolso"
-local TIMER_INTERVAL = 60     -- segundos reais (1 hora in-game a 60x) — teste
-local COOLDOWN_HOURS = 1      -- horas in-game entre bênçãos — teste
+local TIMER_INTERVAL = 1200   -- segundos reais entre cada rolagem (20 min; producao)
 local TICK_INTERVAL  = 2      -- segundos entre chamadas onTick dos efeitos
 
--- ── Estado global ─────────────────────────────────────────────
+-- â”€â”€ Estado global â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local _activeEffects   = {}
-local _perkCache       = {}   -- typeString → Perks enum (para addXP)
+local _perkCache       = {}   -- typeString â†’ Perks enum (para addXP)
 local _lastTriggerTime = 0
 local _lastTickTime    = 0
 local _initialized     = false
 local _hadDayvinho     = false
-local _expiryNotif     = nil  -- { isCurse, showUntil } — exibido no HUD por ~6s
-local _justDiscarded   = false  -- sinaliza que Curses.lua já tratou a remoção
+local _expiryNotif     = nil  -- { isCurse, showUntil } â€” exibido no HUD por ~6s
+local _justDiscarded   = false  -- sinaliza que Curses.lua jÃ¡ tratou a remoÃ§Ã£o
 
--- ── Helpers ───────────────────────────────────────────────────
+-- â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function now()
     return math.floor(getTimeInMillis() / 1000)
 end
 
--- ── Sons do mod ───────────────────────────────────────────────
+-- â”€â”€ Sons do mod â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- B42: ISoundManager.addSound() foi removido. Arquivos .ogg em
--- media/sound/ são descobertos automaticamente pelo mod loader.
--- Usamos o nome do arquivo (sem extensão) direto em PlayWorldSound.
--- REGRA: sempre verificar se o método existe antes de chamar —
+-- media/sound/ sÃ£o descobertos automaticamente pelo mod loader.
+-- Usamos o nome do arquivo (sem extensÃ£o) direto em PlayWorldSound.
+-- REGRA: sempre verificar se o mÃ©todo existe antes de chamar â€”
 -- chamar nil escapa do pcall no Kahlua (RuntimeException Java).
 
 local MOD_SOUNDS = {
-    pickup   = "UIActivateButton",    -- Dayvinho entrou no inventário (PZ nativo)
+    pickup   = "UIActivateButton",    -- Dayvinho entrou no inventÃ¡rio (PZ nativo)
     blessing = "bencao-concedida",    -- media/sound/bencao-concedida.ogg
     curse    = "maldicao-ativada",    -- media/sound/maldicao-ativada.ogg
-    remove   = "UICloseWindow",       -- item saiu do inventário (PZ nativo)
+    remove   = "UICloseWindow",       -- item saiu do inventÃ¡rio (PZ nativo)
 }
 
 local function playModSound(player, key)
@@ -77,18 +76,21 @@ local function playModSound(player, key)
     end)
 end
 
--- ── Fala do Dayvinho ─────────────────────────────────────────
--- Exibe a mensagem na bolha de fala (curta) e no HUD (12s).
+-- â”€â”€ Fala do Dayvinho â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Exibe a mensagem na bolha de fala acima do personagem.
 
 local function dayvinhaSay(player, msg)
     if not msg or msg == "" then return end
-    pcall(player.Say, player, msg)
+    -- Kahlua: chamar nil escapa do pcall como RuntimeException; verificar existencia antes.
+    local fn = player.Say
+    if fn then pcall(fn, player, msg) end
+    -- HUD: bolha acima dura ~3-5s (controlado pelo PZ); exibe 15s no HUD para leitura.
     if DayvinhoBlessings_HUD then
-        pcall(DayvinhoBlessings_HUD.showSpeech, msg)
+        pcall(DayvinhoBlessings_HUD.showSpeech, msg, 15)
     end
 end
 
--- ── ModData ───────────────────────────────────────────────────
+-- â”€â”€ ModData â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local MD_KEY = "DayvinhoBlessings"
 
@@ -98,7 +100,7 @@ local function getMD(player)
     return md[MD_KEY]
 end
 
--- ── Persistência de efeitos ───────────────────────────────────
+-- â”€â”€ PersistÃªncia de efeitos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- Salva a lista de efeitos ativos no ModData do jogador.
 -- O PZ serializa o ModData automaticamente ao salvar o jogo.
 
@@ -122,8 +124,8 @@ local function saveEffects(player)
 end
 
 -- Restaura efeitos do ModData ao carregar um save.
--- Efeitos já expirados são descartados.
--- As funções onTick/onRemove são reconectadas via getDef().
+-- Efeitos jÃ¡ expirados sÃ£o descartados.
+-- As funÃ§Ãµes onTick/onRemove sÃ£o reconectadas via getDef().
 
 local function restoreEffects(player)
     pcall(function()
@@ -142,7 +144,7 @@ local function restoreEffects(player)
                     def = DayvinhoBlessings_Curses.getDef(entry.id)
                 end
                 if def then
-                    -- addEffect usa remaining como duração → endTime ≈ original
+                    -- addEffect usa remaining como duraÃ§Ã£o â†’ endTime â‰ˆ original
                     local endTime = now() + remaining
                     local eff = {
                         id       = entry.id,
@@ -162,7 +164,7 @@ local function restoreEffects(player)
     end)
 end
 
--- ── Cache de perks ────────────────────────────────────────────
+-- â”€â”€ Cache de perks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function buildPerkCache()
     local cache = {}
@@ -185,7 +187,7 @@ local function buildPerkCache()
     return cache
 end
 
--- ── Habilidade aleatória do cache ────────────────────────────
+-- â”€â”€ Habilidade aleatÃ³ria do cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function pickRandomPerkType()
     local keys = {}
@@ -194,7 +196,7 @@ local function pickRandomPerkType()
     return keys[ZombRand(#keys) + 1]
 end
 
--- ── Verificação de posse do item ──────────────────────────────
+-- â”€â”€ VerificaÃ§Ã£o de posse do item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function playerHasDayvinho(player)
     local ok, has = pcall(function()
@@ -203,9 +205,9 @@ local function playerHasDayvinho(player)
     return ok and has
 end
 
--- ── Motor de efeitos ──────────────────────────────────────────
+-- â”€â”€ Motor de efeitos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
--- persist=true: efeito continua mesmo sem o Dayvinho no inventário (ex: maldições)
+-- persist=true: efeito continua mesmo sem o Dayvinho no inventÃ¡rio (ex: maldiÃ§Ãµes)
 local function addEffect(id, kind, durationSecs, def, player, data, persist)
     local endTime = (durationSecs and durationSecs > 0)
         and (now() + durationSecs) or nil
@@ -260,7 +262,7 @@ local function tickEffects(player, t)
     return changed
 end
 
--- ── Aplicar bênção ────────────────────────────────────────────
+-- â”€â”€ Aplicar bÃªnÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function applyBlessing(player, blessingId, isLegendary)
     local def = DayvinhoBlessings_Blessings.getDef(blessingId)
@@ -273,9 +275,17 @@ local function applyBlessing(player, blessingId, isLegendary)
     pcall(def.apply, player, isLegendary, data)
     playModSound(player, "blessing")
 
+    local xpPerkName = nil
     if blessingId == "xp_boost" then
         data.perkType = pickRandomPerkType()
         Log.debug("xp_boost: habilidade sorteada = " .. tostring(data.perkType))
+        pcall(function()
+            local pe = _perkCache[data.perkType]
+            if pe then
+                local perk = PerkFactory.getPerk(pe)
+                if perk then xpPerkName = perk:getName() end
+            end
+        end)
     end
 
     local dur = def.duration or 0
@@ -288,24 +298,27 @@ local function applyBlessing(player, blessingId, isLegendary)
         addEffect(blessingId, "blessing", dur, def, player, data)
     end
 
-    dayvinhaSay(player, DayvinhoBlessings_Messages.getForBlessing(blessingId))
+    local msg = DayvinhoBlessings_Messages.getForBlessing(blessingId)
+    if xpPerkName then
+        msg = msg .. " (" .. xpPerkName .. ")"
+    end
+    dayvinhaSay(player, msg)
     saveEffects(player)
 end
 
--- ── API pública: marca que Curses.lua já tratou a remoção ─────
--- Evita dupla maldição quando "Descartar" já chamou triggerCurse.
+-- â”€â”€ API pÃºblica: marca que Curses.lua jÃ¡ tratou a remoÃ§Ã£o â”€â”€â”€â”€â”€
 
 function DayvinhoBlessings_Main.markDiscarded()
     _justDiscarded = true
 end
 
--- ── API pública: verificar se há efeitos ativos ───────────────
+-- â”€â”€ API pÃºblica: verificar se hÃ¡ efeitos ativos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function DayvinhoBlessings_Main.hasActiveEffects()
     return #_activeEffects > 0 or (_expiryNotif ~= nil)
 end
 
--- ── API pública: disparar maldição (chamada pelo Curses.lua) ──
+-- â”€â”€ API pÃºblica: disparar maldiÃ§Ã£o (chamada pelo Curses.lua) â”€â”€
 
 function DayvinhoBlessings_Main.triggerCurse(player, triggerType)
     local effectId = DayvinhoBlessings_Curses.pickRandomEffect()
@@ -327,31 +340,27 @@ function DayvinhoBlessings_Main.triggerCurse(player, triggerType)
     dayvinhaSay(player, DayvinhoBlessings_Messages.getCurseMsg(triggerType))
 end
 
--- ── Lógica do timer (cada 1 dia in-game ≈ 24 min reais a 60x) ─
+-- â”€â”€ LÃ³gica do timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- A cada TIMER_INTERVAL segundos: 70% bÃªnÃ§Ã£o comum, 5% lendÃ¡ria, 20% maldiÃ§Ã£o, 5% nada.
 
 local function tryTrigger(player)
-    local md         = getMD(player)
-    local worldHours = getGameTime():getWorldAgeHours()
+    local roll       = ZombRandFloat(0, 1)
+    local blessingId = DayvinhoBlessings_Blessings.pickRandom()
 
-    local nextAllowed = md.nextBlessingWorldHours or 0
-    if worldHours < nextAllowed then return end
-
-    -- 50% de chance de falhar
-    if ZombRandFloat(0, 1) < 0.50 then
-        dayvinhaSay(player, DayvinhoBlessings_Messages.getFail())
-        return
+    if roll < 0.20 then
+        -- 20%: maldiÃ§Ã£o aleatÃ³ria
+        DayvinhoBlessings_Main.triggerCurse(player, "random")
+    elseif roll < 0.25 then
+        -- 5%: bÃªnÃ§Ã£o lendÃ¡ria
+        applyBlessing(player, blessingId, true)
+    elseif roll < 0.95 then
+        -- 70%: bÃªnÃ§Ã£o comum
+        applyBlessing(player, blessingId, false)
     end
-
-    -- 5% lendária, 95% normal
-    local isLegendary = ZombRandFloat(0, 1) < 0.05
-    local blessingId  = DayvinhoBlessings_Blessings.pickRandom()
-
-    md.nextBlessingWorldHours = worldHours + COOLDOWN_HOURS
-
-    applyBlessing(player, blessingId, isLegendary)
+    -- 5%: nada acontece
 end
 
--- ── Eventos ───────────────────────────────────────────────────
+-- â”€â”€ Eventos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function onGameStart()
     _activeEffects   = {}
@@ -366,7 +375,7 @@ local function onGameStart()
         _perkCache = result
         local count = 0
         for _ in pairs(_perkCache) do count = count + 1 end
-        Log.info(string.format("inicializado — cache de perks: %d habilidades", count))
+        Log.info(string.format("inicializado â€” cache de perks: %d habilidades", count))
     else
         Log.warn("falha ao construir cache de perks no OnGameStart")
     end
@@ -374,9 +383,9 @@ local function onGameStart()
     _initialized = true
 end
 
--- OnLoad dispara ao carregar um save existente (após OnGameStart).
+-- OnLoad dispara ao carregar um save existente (apÃ³s OnGameStart).
 -- Restaura efeitos do ModData e inicializa _hadDayvinho para
--- evitar a mensagem de boas-vindas espúria e maldição falsa.
+-- evitar a mensagem de boas-vindas espÃºria e maldiÃ§Ã£o falsa.
 local function onLoad()
     local player = getSpecificPlayer(0)
     if not player then return end
@@ -393,11 +402,11 @@ local function onTick()
     local player = getPlayer()
     if not player then return end
 
-    -- Reconstrói cache de perks se vazio (next() não existe no Kahlua)
+    -- ReconstrÃ³i cache de perks se vazio (next() nÃ£o existe no Kahlua)
     local cacheIsEmpty = true
     for _ in pairs(_perkCache) do cacheIsEmpty = false; break end
     if cacheIsEmpty then
-        Log.warn("cache de perks vazio — reconstruindo")
+        Log.warn("cache de perks vazio â€” reconstruindo")
         local ok, result = pcall(buildPerkCache)
         if ok and result then
             _perkCache = result
@@ -411,9 +420,8 @@ local function onTick()
 
     local hasDayvinho = playerHasDayvinho(player)
 
-    -- Detecta Dayvinho saindo do inventário → maldição automática
-    -- Cobre: jogar no chão, colocar em móvel, mochila, zumbi, qualquer container.
-    -- Não re-cursifica quando "Descartar" já tratou (_justDiscarded = true).
+    -- Detecta Dayvinho saindo do inventÃ¡rio â†’ maldiÃ§Ã£o automÃ¡tica
+    -- NÃ£o re-cursifica quando "Descartar" jÃ¡ tratou (_justDiscarded = true).
     if _hadDayvinho and not hasDayvinho then
         if _justDiscarded then
             _justDiscarded = false
@@ -423,15 +431,16 @@ local function onTick()
         end
     end
 
-    -- Mensagem de boas-vindas + som na primeira vez que o item entra no inventário
+    -- Mensagem de boas-vindas + som na primeira vez que o item entra no inventÃ¡rio
     if hasDayvinho and not _hadDayvinho then
         playModSound(player, "pickup")
         dayvinhaSay(player, DayvinhoBlessings_Messages.getGreeting())
+        _lastTriggerTime = now() - TIMER_INTERVAL + 20
     end
     _hadDayvinho = hasDayvinho
 
-    -- Sem o item: remove apenas efeitos não-persistentes (bênçãos).
-    -- Maldições (persist=true) continuam até expirar naturalmente.
+    -- Sem o item: remove apenas efeitos nÃ£o-persistentes (bÃªnÃ§Ã£os).
+    -- MaldiÃ§Ãµes (persist=true) continuam atÃ© expirar naturalmente.
     if not hasDayvinho then
         local removed = false
         for i = #_activeEffects, 1, -1 do
@@ -445,19 +454,19 @@ local function onTick()
 
     local t = now()
 
-    -- Processa todos os efeitos ativos (inclusive maldições sem o item)
+    -- Processa todos os efeitos ativos (inclusive maldiÃ§Ãµes sem o item)
     if #_activeEffects > 0 and t - _lastTickTime >= TICK_INTERVAL then
         _lastTickTime = t
         local changed = tickEffects(player, t)
         if changed then saveEffects(player) end
     end
 
-    -- Limpa notificação de expiração expirada
+    -- Limpa notificaÃ§Ã£o de expiraÃ§Ã£o expirada
     if _expiryNotif and t >= _expiryNotif.showUntil then
         _expiryNotif = nil
     end
 
-    -- Dispara novo timer apenas quando o Dayvinho está presente
+    -- Dispara novo timer apenas quando o Dayvinho estÃ¡ presente
     if hasDayvinho and t - _lastTriggerTime >= TIMER_INTERVAL then
         _lastTriggerTime = t
         tryTrigger(player)
@@ -495,7 +504,7 @@ local function onLevelPerk(player, perk)
     end
 end
 
--- ── API pública: lista completa de efeitos para o HUD ────────
+-- â”€â”€ API pÃºblica: lista completa de efeitos para o HUD â”€â”€â”€â”€â”€â”€â”€â”€
 
 function DayvinhoBlessings_Main.getHUDInfoAll()
     local t = now()
@@ -520,7 +529,7 @@ function DayvinhoBlessings_Main.getHUDInfoAll()
         end
     end
 
-    -- Notificação de expiração recente (após o efeito acabar)
+    -- NotificaÃ§Ã£o de expiraÃ§Ã£o recente (apÃ³s o efeito acabar)
     if _expiryNotif and t < _expiryNotif.showUntil then
         results[#results + 1] = {
             id        = "_expired",

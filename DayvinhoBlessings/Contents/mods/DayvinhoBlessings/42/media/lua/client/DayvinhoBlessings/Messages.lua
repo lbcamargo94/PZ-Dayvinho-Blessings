@@ -12,9 +12,6 @@ local _keys = {
     -- ── Primeiro pickup (mensagem de boas-vindas) ─────────────
     Found = { "UI_DayBless_Found_1","UI_DayBless_Found_2","UI_DayBless_Found_3","UI_DayBless_Found_4" },
 
-    -- ── Falha da rolagem (50% miss) ───────────────────────────
-    Fail = { "UI_DayBless_Fail_1","UI_DayBless_Fail_2","UI_DayBless_Fail_3","UI_DayBless_Fail_4" },
-
     -- ── Bênçãos ───────────────────────────────────────────────
     xp_boost     = { "UI_DayBless_XpBoost_1",    "UI_DayBless_XpBoost_2",    "UI_DayBless_XpBoost_3",    "UI_DayBless_XpBoost_4"    },
     luck         = { "UI_DayBless_Luck_1",        "UI_DayBless_Luck_2",        "UI_DayBless_Luck_3",        "UI_DayBless_Luck_4"        },
@@ -51,6 +48,7 @@ local _keys = {
     curse_explode = { "UI_DayCurse_Explode_1", "UI_DayCurse_Explode_2", "UI_DayCurse_Explode_3", "UI_DayCurse_Explode_4" },
     curse_run     = { "UI_DayCurse_Run_1",     "UI_DayCurse_Run_2",     "UI_DayCurse_Run_3",     "UI_DayCurse_Run_4"     },
     curse_removed = { "UI_DayCurse_Removed_1", "UI_DayCurse_Removed_2", "UI_DayCurse_Removed_3", "UI_DayCurse_Removed_4" },
+    curse_random  = { "UI_DayCurse_Random_1",  "UI_DayCurse_Random_2",  "UI_DayCurse_Random_3",  "UI_DayCurse_Random_4"  },
 
     -- ── Fim da maldição ───────────────────────────────────────
     CurseEnd = { "UI_DayCurse_End_1","UI_DayCurse_End_2","UI_DayCurse_End_3" },
@@ -62,10 +60,6 @@ end
 
 function DayvinhoBlessings_Messages.getForBlessing(blessingId)
     return pick(_keys[blessingId] or _keys.xp_boost)
-end
-
-function DayvinhoBlessings_Messages.getFail()
-    return pick(_keys.Fail)
 end
 
 function DayvinhoBlessings_Messages.getEnd()
