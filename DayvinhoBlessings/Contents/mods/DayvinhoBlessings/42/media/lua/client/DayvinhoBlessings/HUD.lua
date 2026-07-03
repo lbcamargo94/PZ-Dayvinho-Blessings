@@ -49,6 +49,8 @@ local DISPLAY_NAMES = {
     unhappiness_up = "Infelicidade",
     stress_up      = "Estresse",
     hallucination  = "Alucinacao",
+    random_sound   = "Som Assustador",
+    helicopter     = "O Helicoptero do Dayvinho",
     _expired       = "Efeito Encerrado",
 }
 
@@ -90,6 +92,8 @@ local DESCRIPTIONS = {
     unhappiness_up = "+20% de infelicidade imediata",
     stress_up      = "+15% de estresse imediato",
     hallucination  = "Infelicidade leve + mensagem narrativa",
+    random_sound   = "Toca som assustador e atrai zumbis proximos",
+    helicopter     = "Dispara evento de helicoptero + atrai zumbis de longe",
     -- Notificacao de expiração
     _expired       = "O efeito acabou de se encerrar",
 }

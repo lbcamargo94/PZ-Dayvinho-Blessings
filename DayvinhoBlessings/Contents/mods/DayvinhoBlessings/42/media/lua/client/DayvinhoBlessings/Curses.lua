@@ -126,6 +126,64 @@ local CURSE_EFFECTS = {
             pcall(function() s:set(CharacterStat.UNHAPPINESS, clamp(cur + 0.10, 0, 1)) end)
         end,
     },
+
+    -- Som Aleatório: toca um som surpreendente do jogo e atrai zumbis
+    random_sound = {
+        apply = function(player, data)
+            local SOUNDS = {
+                "ZombieScream", "ZombieGroupMoan", "AlarmLoop",
+                "CarHorn", "GunShot", "DogBark",
+            }
+            local picked = SOUNDS[ZombRand(#SOUNDS) + 1]
+            data.soundName = picked
+            -- Toca o som no mundo (outros jogadores e zumbis ouvem o ruído)
+            pcall(function()
+                local sm = getSoundManager()
+                local sq  = player:getSquare()
+                if not sm or not sq then return end
+                local fn = sm.PlayWorldSound
+                if fn then fn(sm, picked, sq, 0, 0, 50, 1, false) end
+            end)
+            -- Ruído para atrair zumbis próximos (raio 50, volume 20)
+            pcall(function()
+                addSound(player, player:getX(), player:getY(), player:getZ(), 50, 20)
+            end)
+        end,
+    },
+
+    -- Helicóptero: dispara o evento de helicóptero + ruído massivo de zumbis
+    helicopter = {
+        apply = function(player, data)
+            -- Tenta disparar o evento real do jogo (B42: HeliEvent.Start)
+            local triggered = false
+            pcall(function()
+                local fn = HeliEvent and HeliEvent.Start
+                if fn then fn(); triggered = true end
+            end)
+            -- Fallback: tenta via GameTime
+            if not triggered then
+                pcall(function()
+                    local gt = getGameTime and getGameTime()
+                    local fn = gt and gt.triggerHelicopter
+                    if fn then fn(gt); triggered = true end
+                end)
+            end
+            -- Garantido: som de helicóptero + ruído enorme de zumbis
+            pcall(function()
+                local sm = getSoundManager()
+                local sq  = player:getSquare()
+                if sm and sq then
+                    local fn = sm.PlayWorldSound
+                    if fn then fn(sm, "HelicopterFly", sq, 0, 0, 200, 1, false) end
+                end
+            end)
+            -- Ruído de 200 blocos para chamar zumbis do mapa inteiro
+            pcall(function()
+                addSound(player, player:getX(), player:getY(), player:getZ(), 200, 100)
+            end)
+            data.triggered = triggered
+        end,
+    },
 }
 
 local _effectIds = {}
