@@ -45,29 +45,18 @@ local function now()
 end
 
 -- ── Sons do mod ───────────────────────────────────────────────
+-- B42: ISoundManager.addSound() foi removido. Arquivos .ogg em
+-- media/sound/ são descobertos automaticamente pelo mod loader.
+-- Usamos o nome do arquivo (sem extensão) direto em PlayWorldSound.
+-- REGRA: sempre verificar se o método existe antes de chamar —
+-- chamar nil escapa do pcall no Kahlua (RuntimeException Java).
 
--- Aliases internos → nome do arquivo .ogg (sem extensão) em media/sound/
--- Sons nativos do PZ usados como fallback para pickup e remoção.
 local MOD_SOUNDS = {
-    pickup   = "UIActivateButton",       -- Dayvinho entrou no inventário (PZ nativo)
-    blessing = "DayBless_BlessGranted",  -- bênção concedida (custom)
-    curse    = "DayBless_CurseActive",   -- maldição ativada (custom)
-    remove   = "UICloseWindow",          -- item saiu do inventário (PZ nativo)
+    pickup   = "UIActivateButton",    -- Dayvinho entrou no inventário (PZ nativo)
+    blessing = "bencao-concedida",    -- media/sound/bencao-concedida.ogg
+    curse    = "maldicao-ativada",    -- media/sound/maldicao-ativada.ogg
+    remove   = "UICloseWindow",       -- item saiu do inventário (PZ nativo)
 }
-
--- Registra os arquivos .ogg customizados no SoundManager do PZ.
--- Deve ocorrer antes do primeiro uso; OnGameBoot é o ponto mais seguro.
-local function registerCustomSounds()
-    pcall(function()
-        local sm = getSoundManager()
-        if not sm then return end
-        sm:addSound("DayBless_BlessGranted", "media/sound/bencao-concedida.ogg",  false, false)
-        sm:addSound("DayBless_CurseActive",  "media/sound/maldicao-ativada.ogg",   false, false)
-        Log.info("sons customizados registrados")
-    end)
-end
-
-Events.OnGameBoot.Add(registerCustomSounds)
 
 local function playModSound(player, key)
     local name = MOD_SOUNDS[key]
@@ -77,9 +66,12 @@ local function playModSound(player, key)
         if not sm then return end
         local sq = player and player:getSquare()
         if sq then
-            sm:PlayWorldSound(name, sq, 0, 0, 0, 1, false)
+            -- Verifica existência do método antes de chamar (evita nil escape)
+            local fn = sm.PlayWorldSound
+            if fn then fn(sm, name, sq, 0, 0, 0, 1, false) end
         else
-            sm:PlayUISound(name)
+            local fn = sm.PlayUISound
+            if fn then fn(sm, name) end
         end
     end)
 end
