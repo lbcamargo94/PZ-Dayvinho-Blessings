@@ -1,5 +1,5 @@
 -- ============================================================
---  Logger.lua — Sistema de logs exclusivo do DayvinhoBlessings
+--  Logger.lua -- Sistema de logs exclusivo do DayvinhoBlessings
 --
 --  Uso:
 --    local Log = DayvinhoBlessings_Logger
@@ -7,9 +7,9 @@
 --    Log.warn("aviso")
 --    Log.error("erro")
 --    Log.debug("detalhe verboso")
---    Log.try(fn, "contexto")   -- pcall + log automático do erro
+--    Log.try(fn, "contexto")   -- pcall + log automatico do erro
 --
---  Nível padrão: INFO  (DEBUG fica silencioso em produção)
+--  Nivel padrao: INFO  (DEBUG fica silencioso em producao)
 --  Para ativar DEBUG em runtime: Log.setLevel("DEBUG")
 -- ============================================================
 
@@ -42,7 +42,7 @@ function DayvinhoBlessings_Logger.error(msg)
 end
 
 -- Wrapper de pcall: executa fn, loga erro com contexto se falhar.
--- Retorna ok, result — compatível com pcall nativo.
+-- Retorna ok, result -- compativel com pcall nativo.
 function DayvinhoBlessings_Logger.try(fn, context)
     local ok, result = pcall(fn)
     if not ok then

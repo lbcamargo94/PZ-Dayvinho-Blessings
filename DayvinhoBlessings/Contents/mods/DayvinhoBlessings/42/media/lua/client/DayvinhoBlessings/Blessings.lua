@@ -1,22 +1,22 @@
 -- ============================================================
---  Blessings.lua — Definição dos 24 tipos de bênção
+--  Blessings.lua -- Definicao dos 24 tipos de bencao
 --
---  Cada entrada contém:
---    weight   : peso na rolagem aleatória (maior = mais frequente)
---    duration : duração em segundos reais (0 = instantâneo)
+--  Cada entrada contem:
+--    weight   : peso na rolagem aleatoria (maior = mais frequente)
+--    duration : duracao em segundos reais (0 = instantaneo)
 --    apply    : function(player, isLegendary, data) chamada ao ativar
 --    onTick   : function(player, data) chamada a cada ~2s enquanto ativa
 --    onRemove : function(player, data) chamada ao expirar
 --
 --  API de stats (B42): CharacterStat enum
---    s:get(CharacterStat.X)    — lê valor atual (escala 0-1)
---    s:set(CharacterStat.X, v) — define valor absoluto
---  APIs inexistentes em B42 substituídas por surrogates:
---    setLuck/getLuck          → CharacterStat.MORALE
---    setForagingRadius        → CharacterStat.MORALE
---    setFishingMultiplier     → CharacterStat.MORALE
---    setWalkingSpeed          → CharacterStat.ENDURANCE
---    getOverallBodyHealth/setOverallBodyHealth → CharacterStat.PAIN
+--    s:get(CharacterStat.X)    -- le valor atual (escala 0-1)
+--    s:set(CharacterStat.X, v) -- define valor absoluto
+--  APIs inexistentes em B42 substituidas por surrogates:
+--    setLuck/getLuck          -> CharacterStat.MORALE
+--    setForagingRadius        -> CharacterStat.MORALE
+--    setFishingMultiplier     -> CharacterStat.MORALE
+--    setWalkingSpeed          -> CharacterStat.ENDURANCE
+--    getOverallBodyHealth/setOverallBodyHealth -> CharacterStat.PAIN
 -- ============================================================
 
 require "DayvinhoBlessings/Messages"
@@ -24,7 +24,7 @@ require "DayvinhoBlessings/Logger"
 
 DayvinhoBlessings_Blessings = {}
 
--- ── Helpers internos ──────────────────────────────────────────
+-- -- Helpers internos ------------------------------------------
 
 local function stats(player)
     local ok, s = pcall(function() return player:getStats() end)
@@ -38,11 +38,11 @@ local GIFT_ITEMS = {
     "Base.Flint",    "Base.TomatoSeeds", "Base.WildGarlic",
 }
 
--- ── Definições ────────────────────────────────────────────────
+-- -- Definicoes ------------------------------------------------
 
 local DEFS = {
 
-    -- ── XP Boost: +100% / +150% via LevelPerk (tratado no Main) ──
+    -- -- XP Boost: +100% / +150% via LevelPerk (tratado no Main) --
     xp_boost = {
         weight = 15, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
@@ -51,7 +51,7 @@ local DEFS = {
         onRemove = function(player, data) data.mult = 0 end,
     },
 
-    -- ── Sorte: morale boost ──
+    -- -- Sorte: morale boost --
     luck = {
         weight = 8, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
@@ -68,7 +68,7 @@ local DEFS = {
         end,
     },
 
-    -- ── Achado Valioso: morale boost ──
+    -- -- Achado Valioso: morale boost --
     foraging = {
         weight = 6, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
@@ -85,7 +85,7 @@ local DEFS = {
         end,
     },
 
-    -- ── Presente do Jardim: 2 itens (comum) / 3 itens (lendária) ──
+    -- -- Presente do Jardim: 2 itens (comum) / 3 itens (lendaria) --
     gift = {
         weight = 5, duration = 0,
         apply = function(player, legendary, data)
@@ -98,7 +98,7 @@ local DEFS = {
         end,
     },
 
-    -- ── Barriga Cheia: reduz fome gradualmente ──
+    -- -- Barriga Cheia: reduz fome gradualmente --
     full_belly = {
         weight = 8, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
@@ -111,7 +111,7 @@ local DEFS = {
         end,
     },
 
-    -- ── Água Fresca: reduz sede imediatamente ──
+    -- -- Agua Fresca: reduz sede imediatamente --
     fresh_water = {
         weight = 8, duration = 0,
         apply = function(player, legendary, data)
@@ -122,7 +122,7 @@ local DEFS = {
         end,
     },
 
-    -- ── Descanso Revigorante: reduz fadiga ──
+    -- -- Descanso Revigorante: reduz fadiga --
     rest = {
         weight = 8, duration = 0,
         apply = function(player, legendary, data)
@@ -133,11 +133,13 @@ local DEFS = {
         end,
     },
 
-    -- ── Espírito Forte: reduz estresse e tédio gradualmente ──
+    -- -- Espirito Forte: reduz estresse e tedio gradualmente --
     spirit = {
         weight = 7, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
-            data.rate = legendary and 0.006 or 0.004
+            data.rate = legendary and 0.006 or 0.004  -- escala 0-1 para STRESS
+            -- BOREDOM usa escala 0-100; rate proporcional
+            data.rateBoredom = legendary and 0.6 or 0.4
         end,
         onTick = function(player, data)
             local s = stats(player); if not s then return end
@@ -145,23 +147,24 @@ local DEFS = {
                 local stress  = s:get(CharacterStat.STRESS)  or 0
                 local boredom = s:get(CharacterStat.BOREDOM) or 0
                 s:set(CharacterStat.STRESS,  clamp(stress  - data.rate, 0, 1))
-                s:set(CharacterStat.BOREDOM, clamp(boredom - data.rate, 0, 1))
+                s:set(CharacterStat.BOREDOM, clamp(boredom - (data.rateBoredom or data.rate * 100), 0, 100))
             end)
         end,
     },
 
-    -- ── Bom Humor: reduz infelicidade ──
+    -- -- Bom Humor: reduz infelicidade --
     good_mood = {
         weight = 7, duration = 0,
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local pct = legendary and 0.75 or 0.50
             local cur = s:get(CharacterStat.UNHAPPINESS) or 0
-            pcall(function() s:set(CharacterStat.UNHAPPINESS, clamp(cur * (1 - pct), 0, 1)) end)
+            -- UNHAPPINESS usa escala 0-100
+            pcall(function() s:set(CharacterStat.UNHAPPINESS, clamp(cur * (1 - pct), 0, 100)) end)
         end,
     },
 
-    -- ── Paz Interior: reduz estresse ──
+    -- -- Paz Interior: reduz estresse --
     inner_peace = {
         weight = 7, duration = 0,
         apply = function(player, legendary, data)
@@ -172,7 +175,7 @@ local DEFS = {
         end,
     },
 
-    -- ── Sono Tranquilo: flag para próximo sono ──
+    -- -- Sono Tranquilo: flag para proximo sono --
     calm_sleep = {
         weight = 4, duration = 0,
         apply = function(player, legendary, data)
@@ -183,7 +186,7 @@ local DEFS = {
         end,
     },
 
-    -- ── Mãos Habilidosas: endurance boost ──
+    -- -- Maos Habilidosas: endurance boost --
     skilled_hands = {
         weight = 5, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
@@ -203,7 +206,7 @@ local DEFS = {
         end,
     },
 
-    -- ── Pescador Abençoado: morale boost ──
+    -- -- Pescador Abencoado: morale boost --
     fisherman = {
         weight = 4, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
@@ -220,7 +223,7 @@ local DEFS = {
         end,
     },
 
-    -- ── Colheita Feliz: redução de estresse ──
+    -- -- Colheita Feliz: reducao de estresse --
     harvest = {
         weight = 3, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
@@ -230,7 +233,7 @@ local DEFS = {
         end,
     },
 
-    -- ── Lenhador Sortudo: bônus de endurance ──
+    -- -- Lenhador Sortudo: bonus de endurance --
     lumberjack = {
         weight = 3, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
@@ -240,17 +243,18 @@ local DEFS = {
         end,
     },
 
-    -- ── Passos Leves: reduz pânico ──
+    -- -- Passos Leves: reduz panico --
     light_steps = {
         weight = 5, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.PANIC) or 0
-            pcall(function() s:set(CharacterStat.PANIC, clamp(cur - 0.15, 0, 1)) end)
+            -- PANIC usa escala 0-100; reduz 15 pontos absolutos
+            pcall(function() s:set(CharacterStat.PANIC, clamp(cur - 15, 0, 100)) end)
         end,
     },
 
-    -- ── Olhos Atentos: morale boost ──
+    -- -- Olhos Atentos: morale boost --
     sharp_eyes = {
         weight = 4, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
@@ -267,48 +271,51 @@ local DEFS = {
         end,
     },
 
-    -- ── Instinto de Sobrevivência: reduz pânico ──
+    -- -- Instinto de Sobrevivencia: reduz panico --
     instinct = {
         weight = 3, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.PANIC) or 0
             local pct = legendary and 0.50 or 0.30
-            pcall(function() s:set(CharacterStat.PANIC, clamp(cur * (1 - pct), 0, 1)) end)
+            -- PANIC usa escala 0-100; reducao proporcional (clamp ajustado)
+            pcall(function() s:set(CharacterStat.PANIC, clamp(cur * (1 - pct), 0, 100)) end)
         end,
     },
 
-    -- ── Mochila Organizada: reduz desconforto gradualmente ──
+    -- -- Mochila Organizada: reduz desconforto gradualmente --
     backpack = {
         weight = 4, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
-            data.rate = legendary and 0.006 or 0.004
+            -- DISCOMFORT usa escala 0-100; rate em pontos absolutos por tick
+            data.rate = legendary and 0.6 or 0.4
         end,
         onTick = function(player, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.DISCOMFORT) or 0
             if cur > 0 then
-                pcall(function() s:set(CharacterStat.DISCOMFORT, clamp(cur - data.rate, 0, 1)) end)
+                pcall(function() s:set(CharacterStat.DISCOMFORT, clamp(cur - data.rate, 0, 100)) end)
             end
         end,
     },
 
-    -- ── Cura Natural: reduz dor gradualmente ──
+    -- -- Cura Natural: reduz dor gradualmente --
     natural_heal = {
         weight = 6, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
-            data.rate = legendary and 0.006 or 0.004
+            -- PAIN usa escala 0-100; rate em pontos absolutos por tick
+            data.rate = legendary and 0.6 or 0.4
         end,
         onTick = function(player, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.PAIN) or 0
             if cur > 0 then
-                pcall(function() s:set(CharacterStat.PAIN, clamp(cur - data.rate, 0, 1)) end)
+                pcall(function() s:set(CharacterStat.PAIN, clamp(cur - data.rate, 0, 100)) end)
             end
         end,
     },
 
-    -- ── Corpo Resistente: restaura endurance gradualmente ──
+    -- -- Corpo Resistente: restaura endurance gradualmente --
     resistant = {
         weight = 6, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
@@ -321,20 +328,21 @@ local DEFS = {
         end,
     },
 
-    -- ── Bênção da Coragem: reduz pânico gradualmente ──
+    -- -- Bencao da Coragem: reduz panico gradualmente --
     courage = {
         weight = 5, duration = 1200,  -- 20 min
         apply = function(player, legendary, data)
-            data.rate = legendary and 0.006 or 0.004
+            -- PANIC usa escala 0-100; rate em pontos absolutos por tick
+            data.rate = legendary and 0.6 or 0.4
         end,
         onTick = function(player, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.PANIC) or 0
-            pcall(function() s:set(CharacterStat.PANIC, clamp(cur - data.rate, 0, 1)) end)
+            pcall(function() s:set(CharacterStat.PANIC, clamp(cur - data.rate, 0, 100)) end)
         end,
     },
 
-    -- ── Sol Abençoado: para a chuva via RainManager ──
+    -- -- Sol Abencoado: para a chuva via RainManager --
     sun = {
         weight = 3, duration = 0,
         apply = function(player, legendary, data)
@@ -346,18 +354,19 @@ local DEFS = {
         end,
     },
 
-    -- ── Arco-Íris: reduz infelicidade ──
+    -- -- Arco-Iris: reduz infelicidade --
     rainbow = {
         weight = 2, duration = 0,
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.UNHAPPINESS) or 0
-            pcall(function() s:set(CharacterStat.UNHAPPINESS, clamp(cur - 0.15, 0, 1)) end)
+            -- UNHAPPINESS usa escala 0-100; reduz 15 pontos absolutos
+            pcall(function() s:set(CharacterStat.UNHAPPINESS, clamp(cur - 15, 0, 100)) end)
         end,
     },
 }
 
--- ── Weighted random picker ────────────────────────────────────
+-- -- Weighted random picker ------------------------------------
 
 local _totalWeight = 0
 do

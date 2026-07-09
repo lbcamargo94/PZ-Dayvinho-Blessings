@@ -1,17 +1,17 @@
-﻿-- ============================================================
---  Distributions.lua — Spawn do Dayvinho de Bolso no mundo
---  Raro: ~2% por container elegível (quartos, lojas)
---  Limite global: no máximo MAX_SPAWNS itens por mundo
+-- ============================================================
+--  Distributions.lua -- Spawn do Dayvinho de Bolso no mundo
+--  Raro: ~7% por container elegivel (quartos, lojas)
+--  Limite global: no maximo MAX_SPAWNS itens por mundo
 -- ============================================================
 
 require "DayvinhoBlessings/Logger"
 local Log = DayvinhoBlessings_Logger
 
 local ITEM_TYPE    = "Base.DayvinhoDeBolso"
-local SPAWN_CHANCE = 0.02   -- 2% por container elegível (calibrado para loot 0.04 do Brasileirão)
-local MAX_SPAWNS   = 3      -- máximo de Dayvinhos que podem ser gerados em todo o mapa
+local SPAWN_CHANCE = 0.07   -- 7% por container elegivel
+local MAX_SPAWNS   = 3      -- maximo de Dayvinhos que podem ser gerados em todo o mapa
 
--- Tipos de cômodo onde o item pode aparecer (substrings, case insensitive)
+-- Tipos de comodo onde o item pode aparecer (substrings, case insensitive)
 local VALID_ROOMS = {
     "bedroom", "child", "toystore", "toy", "retail",
     "livingroom", "lounge", "storeroom", "gift",
@@ -32,22 +32,17 @@ local function matchesAny(str, list)
     return false
 end
 
--- getGameModData() retorna uma tabela global persistida com o mundo (B42).
--- Disponível nos contextos server e client; é o lugar correto para
--- guardar contadores que valem para o mapa inteiro (não por jogador).
+-- getGameModData() nao existe no B42.19; a API foi removida.
+-- Contador em memoria: reseta ao reiniciar, mas itens ja spawnados persistem
+-- no mapa salvo, mantendo o limite efetivo ao longo do mundo.
+local _spawnCount = 0
 
 local function getSpawnCount()
-    local ok, md = pcall(function() return getGameModData() end)
-    if not ok or not md then return 0 end
-    md.DayvinhoBlessings = md.DayvinhoBlessings or {}
-    return md.DayvinhoBlessings.spawnCount or 0
+    return _spawnCount
 end
 
 local function incrementSpawnCount()
-    local ok, md = pcall(function() return getGameModData() end)
-    if not ok or not md then return end
-    md.DayvinhoBlessings = md.DayvinhoBlessings or {}
-    md.DayvinhoBlessings.spawnCount = (md.DayvinhoBlessings.spawnCount or 0) + 1
+    _spawnCount = _spawnCount + 1
 end
 
 Events.OnFillContainer.Add(function(location, container, containerobj)

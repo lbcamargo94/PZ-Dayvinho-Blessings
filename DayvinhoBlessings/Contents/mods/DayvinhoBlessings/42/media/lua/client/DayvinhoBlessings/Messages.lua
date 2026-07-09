@@ -1,18 +1,18 @@
 -- ============================================================
---  Messages.lua — Chaves de tradução (getText) para todas as
---  bênçãos, maldições e mensagens de falha.
+--  Messages.lua -- Chaves de traducao (getText) para todas as
+--  bencaos, maldicoes e mensagens de falha.
 -- ============================================================
 
 require "DayvinhoBlessings/Logger"
 
 DayvinhoBlessings_Messages = {}
 
--- Tabela de chaves: categoria → lista de chaves UI_*
+-- Tabela de chaves: categoria -> lista de chaves UI_*
 local _keys = {
-    -- ── Primeiro pickup (mensagem de boas-vindas) ─────────────
+    -- -- Primeiro pickup (mensagem de boas-vindas) -------------
     Found = { "UI_DayBless_Found_1","UI_DayBless_Found_2","UI_DayBless_Found_3","UI_DayBless_Found_4" },
 
-    -- ── Bênçãos ───────────────────────────────────────────────
+    -- -- Bencaos -----------------------------------------------
     xp_boost     = { "UI_DayBless_XpBoost_1",    "UI_DayBless_XpBoost_2",    "UI_DayBless_XpBoost_3",    "UI_DayBless_XpBoost_4"    },
     luck         = { "UI_DayBless_Luck_1",        "UI_DayBless_Luck_2",        "UI_DayBless_Luck_3",        "UI_DayBless_Luck_4"        },
     foraging     = { "UI_DayBless_Foraging_1",    "UI_DayBless_Foraging_2",    "UI_DayBless_Foraging_3",    "UI_DayBless_Foraging_4"    },
@@ -38,10 +38,10 @@ local _keys = {
     sun          = { "UI_DayBless_Sun_1",         "UI_DayBless_Sun_2",         "UI_DayBless_Sun_3",         "UI_DayBless_Sun_4"         },
     rainbow      = { "UI_DayBless_Rainbow_1",     "UI_DayBless_Rainbow_2",     "UI_DayBless_Rainbow_3",     "UI_DayBless_Rainbow_4"     },
 
-    -- ── Fim da bênção ─────────────────────────────────────────
+    -- -- Fim da bencao -----------------------------------------
     End = { "UI_DayBless_End_1","UI_DayBless_End_2","UI_DayBless_End_3" },
 
-    -- ── Maldições (por tipo de ação) ──────────────────────────
+    -- -- Maldicoes (por tipo de acao) --------------------------
     curse_burn    = { "UI_DayCurse_Burn_1",    "UI_DayCurse_Burn_2",    "UI_DayCurse_Burn_3",    "UI_DayCurse_Burn_4"    },
     curse_destroy = { "UI_DayCurse_Destroy_1", "UI_DayCurse_Destroy_2", "UI_DayCurse_Destroy_3", "UI_DayCurse_Destroy_4" },
     curse_trash   = { "UI_DayCurse_Trash_1",   "UI_DayCurse_Trash_2",   "UI_DayCurse_Trash_3",   "UI_DayCurse_Trash_4"   },
@@ -50,7 +50,7 @@ local _keys = {
     curse_removed = { "UI_DayCurse_Removed_1", "UI_DayCurse_Removed_2", "UI_DayCurse_Removed_3", "UI_DayCurse_Removed_4" },
     curse_random  = { "UI_DayCurse_Random_1",  "UI_DayCurse_Random_2",  "UI_DayCurse_Random_3",  "UI_DayCurse_Random_4"  },
 
-    -- ── Fim da maldição ───────────────────────────────────────
+    -- -- Fim da maldicao ---------------------------------------
     CurseEnd = { "UI_DayCurse_End_1","UI_DayCurse_End_2","UI_DayCurse_End_3" },
 }
 

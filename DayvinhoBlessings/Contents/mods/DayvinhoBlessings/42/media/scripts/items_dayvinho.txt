@@ -2,11 +2,11 @@ module Base
 {
     item DayvinhoDeBolso
     {
-        DisplayName                 = Pocket Dayvinho,
-        Type                        = Normal,
-        Weight                      = 0.1,
-        Icon                        = LawnGnome,
-        CanStack                    = FALSE,
-        Tooltip                     = Tooltip_DayvinhoDeBolso,
+        DisplayCategory                 = Misc,
+        ItemType                        = base:normal,
+        Weight                          = 0.1,
+        Icon                            = LawnGnome,
+        CanStack                        = false,
+        Tooltip                         = Tooltip_DayvinhoDeBolso,
     }
 }

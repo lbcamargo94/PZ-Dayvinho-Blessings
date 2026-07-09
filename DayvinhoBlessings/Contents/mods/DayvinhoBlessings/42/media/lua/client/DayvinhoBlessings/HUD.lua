@@ -1,10 +1,10 @@
 -- ============================================================
---  HUD.lua — Overlay movel listando todos os efeitos ativos
+--  HUD.lua -- Overlay movel listando todos os efeitos ativos
 --
 --  Arrastar: click e mover (quando desbloqueado)
 --  Resize: arrastar handle no canto inferior direito (largura)
 --  Fechar: botao [X] no cabecalho
---  Reabrir: botao direito em item do inventario → "Mostrar HUD"
+--  Reabrir: botao direito em item do inventario -> "Mostrar HUD"
 --  Fixar/soltar: botao direito NO PAINEL alterna lock
 --
 --  Posicao, largura, lock e visibilidade salvos em ModData
@@ -13,7 +13,7 @@
 require "DayvinhoBlessings/Logger"
 local Log = DayvinhoBlessings_Logger
 
--- ── Nomes de exibicao ─────────────────────────────────────────
+-- -- Nomes de exibicao -----------------------------------------
 
 local DISPLAY_NAMES = {
     xp_boost       = "XP Boost",
@@ -54,7 +54,7 @@ local DISPLAY_NAMES = {
     _expired       = "Efeito Encerrado",
 }
 
--- ── Descricoes detalhadas ─────────────────────────────────────
+-- -- Descricoes detalhadas -------------------------------------
 
 local DESCRIPTIONS = {
     -- Bencoes
@@ -94,11 +94,11 @@ local DESCRIPTIONS = {
     hallucination  = "Infelicidade leve + mensagem narrativa",
     random_sound   = "Toca som assustador e atrai zumbis proximos",
     helicopter     = "Dispara evento de helicoptero + atrai zumbis de longe",
-    -- Notificacao de expiração
+    -- Notificacao de expiracao
     _expired       = "O efeito acabou de se encerrar",
 }
 
--- ── Constantes de layout ──────────────────────────────────────
+-- -- Constantes de layout --------------------------------------
 
 local MD_KEY    = "DayvinhoBlessings"
 local DEFAULT_X = 10
@@ -111,13 +111,13 @@ local SPEECH_H  = 28   -- altura da linha de fala do Dayvinho
 local FOOTER_H  = 14   -- espaco inferior para handle de resize
 local HANDLE    = 12   -- tamanho do handle de resize
 
--- ── Estado ────────────────────────────────────────────────────
+-- -- Estado ----------------------------------------------------
 
 local _hudPanel    = nil
 local _speechText  = nil
 local _speechUntil = 0
 
--- ── Classe HUD ────────────────────────────────────────────────
+-- -- Classe HUD ------------------------------------------------
 
 DayvinhoBlessings_HUDPanel = ISPanel:derive("DayvinhoBlessings_HUDPanel")
 
@@ -139,7 +139,7 @@ function DayvinhoBlessings_HUDPanel:initialise()
     ISPanel.initialise(self)
 end
 
--- ── Interacao com mouse ───────────────────────────────────────
+-- -- Interacao com mouse ---------------------------------------
 
 function DayvinhoBlessings_HUDPanel:onMouseDown(x, y)
     local w = self:getWidth()
@@ -210,7 +210,7 @@ function DayvinhoBlessings_HUDPanel:onRightMouseDown(x, y)
     return true
 end
 
--- ── Persistencia ──────────────────────────────────────────────
+-- -- Persistencia ----------------------------------------------
 
 function DayvinhoBlessings_HUDPanel:_saveLayout()
     pcall(function()
@@ -226,7 +226,7 @@ function DayvinhoBlessings_HUDPanel:_saveLayout()
     end)
 end
 
--- ── Render ────────────────────────────────────────────────────
+-- -- Render ----------------------------------------------------
 
 function DayvinhoBlessings_HUDPanel:render()
     local infoList = DayvinhoBlessings_Main and DayvinhoBlessings_Main.getHUDInfoAll()
@@ -267,7 +267,7 @@ function DayvinhoBlessings_HUDPanel:render()
 
     ISPanel.render(self)  -- fundo + borda
 
-    -- ── Cabecalho ────────────────────────────────────────────
+    -- -- Cabecalho --------------------------------------------
 
     self:drawText("== Dayvinho ==", 8, 5, 0.75, 0.58, 0.12, 1, UIFont.Small)
 
@@ -281,15 +281,15 @@ function DayvinhoBlessings_HUDPanel:render()
     end
 
     -- Linha separadora do cabecalho
-    self:drawRect(0, HEADER_H - 2, w, 1, 0.6, 0.35, 0.25, 0.08, 0.08)
+    self:drawRect(0, HEADER_H - 2, w, 1, 0.6, 0.35, 0.25, 0.08)
 
-    -- ── Linha "nenhum efeito" ─────────────────────────────────
+    -- -- Linha "nenhum efeito" ---------------------------------
 
     if n == 0 then
         self:drawText("Nenhum efeito ativo", 8, HEADER_H + 18, 0.38, 0.38, 0.38, 1, UIFont.Small)
     end
 
-    -- ── Linhas de efeito ─────────────────────────────────────
+    -- -- Linhas de efeito -------------------------------------
 
     for idx, info in ipairs(infoList or {}) do
         local ry = HEADER_H + (idx - 1) * ROW_H
@@ -325,17 +325,17 @@ function DayvinhoBlessings_HUDPanel:render()
 
         -- Separador entre linhas (exceto a ultima)
         if idx < n then
-            self:drawRect(8, ry + ROW_H - 2, w - 16, 1, 0.5, 0.25, 0.25, 0.25, 0.25)
+            self:drawRect(8, ry + ROW_H - 2, w - 16, 1, 0.5, 0.25, 0.25, 0.25)
         end
     end
 
-    -- ── Linha de fala do Dayvinho ─────────────────────────────
+    -- -- Linha de fala do Dayvinho -----------------------------
     if hasSpeech then
         local sy = HEADER_H + effectH
         -- Separador
-        self:drawRect(0, sy, w, 1, 0.5, 0.70, 0.55, 0.10, 0.10)
+        self:drawRect(0, sy, w, 1, 0.5, 0.70, 0.55, 0.10)
         -- Fundo levemente destacado
-        self:drawRect(0, sy + 1, w, SPEECH_H - 2, 0.12, 0.10, 0.06, 0.04, 0.04)
+        self:drawRect(0, sy + 1, w, SPEECH_H - 2, 0.12, 0.10, 0.06, 0.04)
         -- Texto da fala
         self:drawText("[Dayvinho] " .. _speechText, 8, sy + 6, 0.95, 0.82, 0.28, 1, UIFont.Small)
     end
@@ -344,7 +344,7 @@ function DayvinhoBlessings_HUDPanel:render()
     self:drawRect(w - HANDLE, h - HANDLE, HANDLE, HANDLE, 0.7, 0.40, 0.40, 0.50)
 end
 
--- ── API global ────────────────────────────────────────────────
+-- -- API global ------------------------------------------------
 
 DayvinhoBlessings_HUD = {}
 
@@ -368,20 +368,20 @@ function DayvinhoBlessings_HUD.show()
     end
 end
 
--- Exibe a fala do Dayvinho no HUD por `duration` segundos (padrão 12s).
+-- Exibe a fala do Dayvinho no HUD por `duration` segundos (padrao 12s).
 -- Abre o HUD automaticamente se estiver fechado.
 function DayvinhoBlessings_HUD.showSpeech(msg, duration)
     if not msg or msg == "" then return end
     _speechText  = msg
     _speechUntil = math.floor(getTimeInMillis() / 1000) + (duration or 20)
-    -- Garante que o HUD esteja visível para a fala aparecer
+    -- Garante que o HUD esteja visivel para a fala aparecer
     if _hudPanel and not _hudPanel:isVisible() then
         _hudPanel:setVisible(true)
         _hudPanel:_saveLayout()
     end
 end
 
--- ── Criacao e registro ────────────────────────────────────────
+-- -- Criacao e registro ----------------------------------------
 
 local function _loadLayout()
     local x, y, w, locked, visible = DEFAULT_X, DEFAULT_Y, DEFAULT_W, false, true
