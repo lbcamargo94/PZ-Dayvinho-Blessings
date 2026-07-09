@@ -4,10 +4,17 @@
 --  Arrastar: click e mover (quando desbloqueado)
 --  Resize: arrastar handle no canto inferior direito (largura)
 --  Fechar: botao [X] no cabecalho
---  Reabrir: botao direito em item do inventario -> "Mostrar HUD"
+--  Scroll: roda do mouse ou clique no track da barra de rolagem
 --  Fixar/soltar: botao direito NO PAINEL alterna lock
 --
---  Posicao, largura, lock e visibilidade salvos em ModData
+--  Layout (topo para baixo):
+--    1. Cabecalho (titulo + botao X)
+--    2. Fala do Dayvinho (se ativa)
+--    3. Lista de efeitos (max MAX_ROWS visiveis, rolavel)
+--    4. Handle de resize
+--
+--  Efeitos exibidos do mais recente para o mais antigo.
+--  Posicao, largura, lock e visibilidade salvos em ModData.
 -- ============================================================
 
 require "DayvinhoBlessings/Logger"
@@ -57,7 +64,6 @@ local DISPLAY_NAMES = {
 -- -- Descricoes detalhadas -------------------------------------
 
 local DESCRIPTIONS = {
-    -- Bencoes
     xp_boost       = "+100% XP ganho em 1 habilidade sorteada",
     luck           = "+20% Morale enquanto ativo",
     foraging       = "+25% Morale enquanto ativo",
@@ -82,8 +88,7 @@ local DESCRIPTIONS = {
     courage        = "Reduz panico gradualmente ao longo do tempo",
     sun            = "Para a chuva imediatamente",
     rainbow        = "Reduz infelicidade em 15% imediatamente",
-    -- Maldicoes
-    bad_luck       = "Reduz Morale (surrogate de Luck) em 10%",
+    bad_luck       = "Reduz Morale em 10%",
     panic_faster   = "Panico aumenta gradualmente a cada tick",
     hunger_up      = "+20% de fome imediata",
     thirst_up      = "+20% de sede imediata",
@@ -93,8 +98,7 @@ local DESCRIPTIONS = {
     stress_up      = "+15% de estresse imediato",
     hallucination  = "Infelicidade leve + mensagem narrativa",
     random_sound   = "Toca som assustador e atrai zumbis proximos",
-    helicopter     = "Dispara evento de helicoptero + atrai zumbis de longe",
-    -- Notificacao de expiracao
+    helicopter     = "Helicoptero + zumbis em raio de 200 blocos",
     _expired       = "O efeito acabou de se encerrar",
 }
 
@@ -105,33 +109,54 @@ local DEFAULT_X = 10
 local DEFAULT_Y = 50
 local DEFAULT_W = 260
 local MIN_W     = 200
-local HEADER_H  = 26   -- altura do cabecalho (titulo + botao X)
-local ROW_H     = 54   -- altura de cada linha de efeito (3 linhas de texto)
-local SPEECH_H  = 28   -- altura da linha de fala do Dayvinho
+local HEADER_H  = 26   -- cabecalho (titulo + botao X)
+local ROW_H     = 54   -- altura de cada linha de efeito
+local SPEECH_H  = 32   -- altura da fala do Dayvinho (topo da lista)
 local FOOTER_H  = 14   -- espaco inferior para handle de resize
 local HANDLE    = 12   -- tamanho do handle de resize
+local MAX_ROWS  = 5    -- maximo de linhas visiveis antes da barra de rolagem
+local SCROLL_W  = 8    -- largura da barra de rolagem
+local CHAR_W    = 7    -- largura media de caractere em UIFont.Small (px)
 
--- -- Estado ----------------------------------------------------
+-- -- Helpers ----------------------------------------------------
 
-local _hudPanel    = nil
-local _speechText  = nil
-local _speechUntil = 0
+-- Trunca texto para caber em maxPx pixels (estimativa por char).
+local function trunc(str, maxPx)
+    if not str or str == "" then return "" end
+    local maxChars = math.floor(maxPx / CHAR_W)
+    if maxChars <= 3 then return "..." end
+    if #str <= maxChars then return str end
+    return str:sub(1, maxChars - 3) .. "..."
+end
 
--- -- Classe HUD ------------------------------------------------
+-- -- Estado -----------------------------------------------------
+
+local _hudPanel     = nil
+local _speechText   = nil
+local _speechUntil  = 0
+local _scrollOffset = 0   -- indice base (0=mais recente no topo)
+local _lastN        = 0   -- detecta chegada de novo efeito para reset do scroll
+
+-- -- Classe HUD -------------------------------------------------
 
 DayvinhoBlessings_HUDPanel = ISPanel:derive("DayvinhoBlessings_HUDPanel")
 
 function DayvinhoBlessings_HUDPanel:new(x, y, w)
-    -- Altura calculada com base no numero de efeitos (minimo 1 linha)
     local h = HEADER_H + ROW_H + FOOTER_H
     local o = ISPanel.new(self, x, y, w or DEFAULT_W, h)
     setmetatable(o, self)
     self.__index      = self
     o.backgroundColor = { r=0.05, g=0.05, b=0.05, a=0.82 }
     o.borderColor     = { r=0.60, g=0.45, b=0.08, a=1.00 }
-    o._moving   = false
-    o._resizing = false
-    o._locked   = false
+    o._moving         = false
+    o._resizing       = false
+    o._locked         = false
+    -- cache para onMouseDown/onMouseWheel
+    o._scrollNeeded   = false
+    o._effectStartY   = HEADER_H
+    o._visibleRows    = 1
+    o._maxScroll      = 0
+    o._totalN         = 0
     return o
 end
 
@@ -139,12 +164,12 @@ function DayvinhoBlessings_HUDPanel:initialise()
     ISPanel.initialise(self)
 end
 
--- -- Interacao com mouse ---------------------------------------
+-- -- Interacao com mouse ----------------------------------------
 
 function DayvinhoBlessings_HUDPanel:onMouseDown(x, y)
     local w = self:getWidth()
 
-    -- Botao [X] no cabecalho (area: x > w-26, y < HEADER_H)
+    -- Botao [X] fechar (canto superior direito do cabecalho)
     if y < HEADER_H and x >= w - 26 then
         self:setVisible(false)
         self:_saveLayout()
@@ -152,11 +177,24 @@ function DayvinhoBlessings_HUDPanel:onMouseDown(x, y)
         return true
     end
 
+    -- Clique no track da barra de rolagem
+    if self._scrollNeeded then
+        local trackX = w - SCROLL_W
+        local trackY = self._effectStartY
+        local trackH = self._visibleRows * ROW_H
+        if x >= trackX and y >= trackY and y <= trackY + trackH then
+            local rel   = math.max(0, y - trackY)
+            local ratio = rel / trackH
+            _scrollOffset = math.floor(ratio * self._maxScroll + 0.5)
+            _scrollOffset = math.max(0, math.min(self._maxScroll, _scrollOffset))
+            return true
+        end
+    end
+
     if self._locked then return end
     self:bringToTop()
 
     local h = self:getHeight()
-    -- Handle de resize no canto inferior direito
     if x >= w - HANDLE and y >= h - HANDLE then
         self._resizing = true
         self._moving   = false
@@ -172,7 +210,6 @@ function DayvinhoBlessings_HUDPanel:onMouseMove(dx, dy)
         self:setX(self:getX() + dx)
         self:setY(self:getY() + dy)
     elseif self._resizing then
-        -- Apenas largura; altura e calculada automaticamente pelo conteudo
         self:setWidth(math.max(MIN_W, self:getWidth() + dx))
     end
 end
@@ -202,6 +239,14 @@ function DayvinhoBlessings_HUDPanel:onMouseUpOutside(x, y)
     end
 end
 
+-- Roda do mouse: rolar pelos efeitos
+function DayvinhoBlessings_HUDPanel:onMouseWheel(del)
+    if not self._scrollNeeded then return false end
+    -- del > 0 = scroll up (ver mais recentes) | del < 0 = scroll down (ver mais antigos)
+    _scrollOffset = math.max(0, math.min(self._maxScroll, _scrollOffset - del))
+    return true
+end
+
 -- Botao direito NO PAINEL: fixa/solta
 function DayvinhoBlessings_HUDPanel:onRightMouseDown(x, y)
     self._locked = not self._locked
@@ -210,7 +255,7 @@ function DayvinhoBlessings_HUDPanel:onRightMouseDown(x, y)
     return true
 end
 
--- -- Persistencia ----------------------------------------------
+-- -- Persistencia -----------------------------------------------
 
 function DayvinhoBlessings_HUDPanel:_saveLayout()
     pcall(function()
@@ -226,35 +271,59 @@ function DayvinhoBlessings_HUDPanel:_saveLayout()
     end)
 end
 
--- -- Render ----------------------------------------------------
+-- -- Render -----------------------------------------------------
 
 function DayvinhoBlessings_HUDPanel:render()
     local infoList = DayvinhoBlessings_Main and DayvinhoBlessings_Main.getHUDInfoAll()
     local n = infoList and #infoList or 0
 
+    -- Novo efeito chegou: reset scroll para mostrar o mais recente
+    if n ~= _lastN then
+        if n > _lastN then _scrollOffset = 0 end
+        _lastN = n
+    end
+
     local w = self:getWidth()
     local t = math.floor(getTimeInMillis() / 1000)
 
-    -- Verifica fala ativa
+    -- Fala ativa?
     local hasSpeech = _speechText ~= nil and t < _speechUntil
     if not hasSpeech then _speechText = nil end
 
-    -- Ajuste automatico de altura com base no numero de efeitos e fala
-    local effectH = math.max(1, n) * ROW_H
-    local speechH = hasSpeech and SPEECH_H or 0
-    local targetH = HEADER_H + effectH + speechH + FOOTER_H
+    -- Calcular layout
+    local speechH       = hasSpeech and SPEECH_H or 0
+    local effectStartY  = HEADER_H + speechH
+    local visibleRows   = math.min(math.max(n, 1), MAX_ROWS)
+    local scrollNeeded  = n > MAX_ROWS
+    local maxScroll     = math.max(0, n - MAX_ROWS)
+    _scrollOffset       = math.max(0, math.min(maxScroll, _scrollOffset))
+
+    local effectH  = visibleRows * ROW_H
+    local targetH  = HEADER_H + speechH + effectH + FOOTER_H
     if math.abs(self:getHeight() - targetH) > 1 then
         self:setHeight(targetH)
     end
     local h = self:getHeight()
 
-    -- Borda: ouro se bencao dominante, vermelho se maldicao, cinza se expirado
-    local hasBlessing, hasCurse, hasExpired = false, false, false
+    -- Guardar cache para handlers de mouse
+    self._scrollNeeded  = scrollNeeded
+    self._effectStartY  = effectStartY
+    self._visibleRows   = visibleRows
+    self._maxScroll     = maxScroll
+    self._totalN        = n
+
+    -- Largura util para texto (desconta scrollbar e padding)
+    local scrollPad = scrollNeeded and (SCROLL_W + 4) or 0
+    local textW     = w - 8 - scrollPad   -- 8 = padding esquerda
+
+    -- Cor da borda (cursa > bencao > neutro)
+    local hasBlessing, hasCurse = false, false
     if infoList then
         for _, info in ipairs(infoList) do
-            if info.isExpired then hasExpired = true
-            elseif info.isCurse then hasCurse = true
-            else hasBlessing = true end
+            if not info.isExpired then
+                if info.isCurse then hasCurse = true
+                else hasBlessing = true end
+            end
         end
     end
     if hasCurse then
@@ -265,86 +334,119 @@ function DayvinhoBlessings_HUDPanel:render()
         self.borderColor = { r=0.40, g=0.40, b=0.40, a=1 }
     end
 
-    ISPanel.render(self)  -- fundo + borda
+    ISPanel.render(self)
 
-    -- -- Cabecalho --------------------------------------------
-
+    -- --------------------------------------------------------
+    -- 1. CABECALHO
+    -- --------------------------------------------------------
     self:drawText("== Dayvinho ==", 8, 5, 0.75, 0.58, 0.12, 1, UIFont.Small)
 
-    -- Botao [X] fechar
     self:drawRect(w - 24, 4, 20, 18, 0.85, 0.60, 0.10, 0.10)
-    self:drawText("X",    w - 18, 5, 1, 1, 1, 1, UIFont.Small)
+    self:drawText("X", w - 18, 5, 1, 1, 1, 1, UIFont.Small)
 
-    -- Indicador de lock
     if self._locked then
         self:drawText("[F]", w - 52, 5, 0.45, 0.45, 0.45, 0.8, UIFont.Small)
     end
 
-    -- Linha separadora do cabecalho
     self:drawRect(0, HEADER_H - 2, w, 1, 0.6, 0.35, 0.25, 0.08)
 
-    -- -- Linha "nenhum efeito" ---------------------------------
-
-    if n == 0 then
-        self:drawText("Nenhum efeito ativo", 8, HEADER_H + 18, 0.38, 0.38, 0.38, 1, UIFont.Small)
-    end
-
-    -- -- Linhas de efeito -------------------------------------
-
-    for idx, info in ipairs(infoList or {}) do
-        local ry = HEADER_H + (idx - 1) * ROW_H
-
-        -- Cor do tipo
-        local nr, ng, nb
-        if info.isExpired then
-            nr, ng, nb = 0.55, 0.55, 0.55
-        elseif info.isCurse then
-            nr, ng, nb = 1.00, 0.28, 0.28
-        else
-            nr, ng, nb = 1.00, 0.85, 0.18
-        end
-
-        -- Linha 1: tipo + nome
-        local nameStr
-        if info.isExpired then
-            nameStr = info.isCurse and "[ Maldicao Encerrada ]" or "[ Bencao Encerrada ]"
-        else
-            local prefix = info.isCurse and "[Maldicao] " or "[Bencao] "
-            nameStr = prefix .. (DISPLAY_NAMES[info.id] or info.id)
-        end
-        self:drawText(nameStr, 8, ry + 4, nr, ng, nb, 1, UIFont.Small)
-
-        -- Linha 2: descricao
-        local desc = DESCRIPTIONS[info.id] or ""
-        if desc ~= "" then
-            self:drawText(desc, 12, ry + 20, 0.62, 0.62, 0.62, 1, UIFont.Small)
-        end
-
-        -- Linha 3: timer
-        self:drawText(info.timerText, 12, ry + 36, 0.50, 0.50, 0.50, 1, UIFont.Small)
-
-        -- Separador entre linhas (exceto a ultima)
-        if idx < n then
-            self:drawRect(8, ry + ROW_H - 2, w - 16, 1, 0.5, 0.25, 0.25, 0.25)
-        end
-    end
-
-    -- -- Linha de fala do Dayvinho -----------------------------
+    -- --------------------------------------------------------
+    -- 2. FALA DO DAYVINHO (logo apos o cabecalho)
+    -- --------------------------------------------------------
     if hasSpeech then
-        local sy = HEADER_H + effectH
-        -- Separador
-        self:drawRect(0, sy, w, 1, 0.5, 0.70, 0.55, 0.10)
         -- Fundo levemente destacado
-        self:drawRect(0, sy + 1, w, SPEECH_H - 2, 0.12, 0.10, 0.06, 0.04)
-        -- Texto da fala
-        self:drawText("[Dayvinho] " .. _speechText, 8, sy + 6, 0.95, 0.82, 0.28, 1, UIFont.Small)
+        self:drawRect(0, HEADER_H, w, SPEECH_H, 0.10, 0.08, 0.04, 0.55)
+        -- Texto da fala (truncado para a largura)
+        local speechStr = trunc("[Dayvinho] " .. _speechText, textW + scrollPad - 4)
+        self:drawText(speechStr, 8, HEADER_H + 8, 0.95, 0.82, 0.28, 1, UIFont.Small)
+        -- Linha separadora inferior da fala
+        self:drawRect(0, HEADER_H + SPEECH_H - 1, w, 1, 0.5, 0.70, 0.55, 0.20)
     end
 
-    -- Handle de resize (canto inferior direito)
+    -- --------------------------------------------------------
+    -- 3. LISTA DE EFEITOS (mais recente no topo = lista invertida)
+    -- --------------------------------------------------------
+    if n == 0 then
+        self:drawText("Nenhum efeito ativo", 8, effectStartY + 18,
+            0.38, 0.38, 0.38, 1, UIFont.Small)
+    else
+        for row = 1, visibleRows do
+            -- Indice na lista original (invertida: n = mais recente)
+            local srcIdx = n - (_scrollOffset + row - 1)
+            if srcIdx < 1 then break end
+
+            local info = infoList[srcIdx]
+            local ry   = effectStartY + (row - 1) * ROW_H
+
+            -- Cor do tipo
+            local nr, ng, nb
+            if info.isExpired then
+                nr, ng, nb = 0.55, 0.55, 0.55
+            elseif info.isCurse then
+                nr, ng, nb = 1.00, 0.28, 0.28
+            else
+                nr, ng, nb = 1.00, 0.85, 0.18
+            end
+
+            -- Linha 1: tipo + nome (truncado)
+            local nameStr
+            if info.isExpired then
+                nameStr = info.isCurse and "[ Maldicao Encerrada ]" or "[ Bencao Encerrada ]"
+            else
+                local prefix = info.isCurse and "[Maldicao] " or "[Bencao] "
+                nameStr = prefix .. (DISPLAY_NAMES[info.id] or info.id)
+            end
+            self:drawText(trunc(nameStr, textW), 8, ry + 4, nr, ng, nb, 1, UIFont.Small)
+
+            -- Linha 2: descricao (truncada, recuada)
+            local desc = DESCRIPTIONS[info.id] or ""
+            if desc ~= "" then
+                self:drawText(trunc(desc, textW - 4), 12, ry + 20,
+                    0.62, 0.62, 0.62, 1, UIFont.Small)
+            end
+
+            -- Linha 3: timer
+            self:drawText(trunc(info.timerText or "", textW - 4), 12, ry + 36,
+                0.50, 0.50, 0.50, 1, UIFont.Small)
+
+            -- Separador entre linhas (exceto a ultima visivel)
+            if row < visibleRows and srcIdx > 1 then
+                self:drawRect(8, ry + ROW_H - 2, w - 16 - scrollPad, 1,
+                    0.5, 0.25, 0.25, 0.25)
+            end
+        end
+    end
+
+    -- --------------------------------------------------------
+    -- 4. BARRA DE ROLAGEM (quando n > MAX_ROWS)
+    -- --------------------------------------------------------
+    if scrollNeeded then
+        local trackX = w - SCROLL_W
+        local trackY = effectStartY
+        local trackH = visibleRows * ROW_H
+
+        -- Track (fundo da barra)
+        self:drawRect(trackX, trackY, SCROLL_W, trackH, 0.7, 0.15, 0.15, 0.15)
+
+        -- Thumb (posicao atual)
+        local thumbH   = math.max(14, math.floor(trackH * visibleRows / n))
+        local thumbMaxY = trackH - thumbH
+        local thumbY   = trackY + math.floor(thumbMaxY * _scrollOffset / maxScroll)
+        self:drawRect(trackX + 1, thumbY, SCROLL_W - 2, thumbH, 0.85, 0.55, 0.42, 0.18)
+
+        -- Indicador de scroll no cabecalho (discreto)
+        local scrollLabel = string.format("%d/%d", _scrollOffset + 1,
+            math.max(1, n - MAX_ROWS + 1))
+        self:drawText(scrollLabel, trackX - 28, 5, 0.40, 0.40, 0.40, 0.7, UIFont.Small)
+    end
+
+    -- --------------------------------------------------------
+    -- 5. HANDLE DE RESIZE (canto inferior direito)
+    -- --------------------------------------------------------
     self:drawRect(w - HANDLE, h - HANDLE, HANDLE, HANDLE, 0.7, 0.40, 0.40, 0.50)
 end
 
--- -- API global ------------------------------------------------
+-- -- API global -------------------------------------------------
 
 DayvinhoBlessings_HUD = {}
 
@@ -368,20 +470,21 @@ function DayvinhoBlessings_HUD.show()
     end
 end
 
--- Exibe a fala do Dayvinho no HUD por `duration` segundos (padrao 12s).
+-- Exibe a fala do Dayvinho no HUD por `duration` segundos.
 -- Abre o HUD automaticamente se estiver fechado.
+-- O scroll e resetado para o topo para garantir visibilidade da fala.
 function DayvinhoBlessings_HUD.showSpeech(msg, duration)
     if not msg or msg == "" then return end
-    _speechText  = msg
-    _speechUntil = math.floor(getTimeInMillis() / 1000) + (duration or 20)
-    -- Garante que o HUD esteja visivel para a fala aparecer
+    _speechText   = msg
+    _speechUntil  = math.floor(getTimeInMillis() / 1000) + (duration or 20)
+    _scrollOffset = 0
     if _hudPanel and not _hudPanel:isVisible() then
         _hudPanel:setVisible(true)
         _hudPanel:_saveLayout()
     end
 end
 
--- -- Criacao e registro ----------------------------------------
+-- -- Criacao e registro -----------------------------------------
 
 local function _loadLayout()
     local x, y, w, locked, visible = DEFAULT_X, DEFAULT_Y, DEFAULT_W, false, true
@@ -408,6 +511,7 @@ local function createHUD()
     _hudPanel:initialise()
     _hudPanel:addToUIManager()
     _hudPanel:setVisible(visible)
+    _scrollOffset = 0
     Log.info(string.format("HUD criado em (%d,%d) w=%d locked=%s vis=%s",
         x, y, w, tostring(locked), tostring(visible)))
 end
@@ -423,6 +527,7 @@ local function onLoad()
     _hudPanel:setWidth(w)
     _hudPanel._locked = locked
     _hudPanel:setVisible(visible)
+    _scrollOffset = 0
 end
 
 Events.OnGameStart.Add(createHUD)
