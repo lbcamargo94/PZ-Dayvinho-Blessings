@@ -189,14 +189,7 @@ end
 
 -- a"EURa"EUR Habilidade aleatA3ria do cache a"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EUR
 
-local function pickRandomPerkType()
-    local keys = {}
-    for k in pairs(_perkCache) do keys[#keys + 1] = k end
-    if #keys == 0 then return nil end
-    return keys[ZombRand(#keys) + 1]
-end
-
--- a"EURa"EUR VerificaA?A?o de posse do item a"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EUR
+--a"EURa"EUR VerificaA?A?o de posse do item a"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EUR
 
 local function playerHasDayvinho(player)
     local ok, has = pcall(function()
@@ -276,16 +269,9 @@ local function applyBlessing(player, blessingId, isLegendary)
     playModSound(player, "blessing")
 
     local xpPerkName = nil
-    if blessingId == "xp_boost" then
-        data.perkType = pickRandomPerkType()
-        Log.debug("xp_boost: habilidade sorteada = " .. tostring(data.perkType))
-        pcall(function()
-            local pe = _perkCache[data.perkType]
-            if pe then
-                local perk = PerkFactory.getPerk(pe)
-                if perk then xpPerkName = perk:getName() end
-            end
-        end)
+    if blessingId:sub(1, 9) == "xp_boost_" then
+        xpPerkName = def.perkName
+        Log.debug("xp_boost: habilidade = " .. tostring(def.perkType))
     end
 
     local dur = def.duration or 0
@@ -373,6 +359,7 @@ local function onGameStart()
     local ok, result = pcall(buildPerkCache)
     if ok and result then
         _perkCache = result
+        DayvinhoBlessings_Blessings.buildXPBoostDefs(_perkCache)
         local count = 0
         for _ in pairs(_perkCache) do count = count + 1 end
         Log.info(string.format("inicializado - cache de perks: %d habilidades", count))
@@ -410,6 +397,7 @@ local function onTick()
         local ok, result = pcall(buildPerkCache)
         if ok and result then
             _perkCache = result
+            DayvinhoBlessings_Blessings.buildXPBoostDefs(_perkCache)
             local count = 0
             for _ in pairs(_perkCache) do count = count + 1 end
             Log.info(string.format("cache reconstruido: %d habilidades", count))
@@ -483,7 +471,7 @@ local function onLevelPerk(player, perk)
 
     local mult = 0
     for _, eff in ipairs(_activeEffects) do
-        if eff.id == "xp_boost" and eff.kind == "blessing" and eff.data then
+        if eff.kind == "blessing" and eff.data and eff.id:sub(1, 9) == "xp_boost_" then
             if eff.data.perkType == typeStr then
                 mult = eff.data.mult or 0
                 break
@@ -518,12 +506,20 @@ function DayvinhoBlessings_Main.getHUDInfoAll()
             if remaining > 0 then
                 local mins = math.floor(remaining / 60)
                 local secs = remaining % 60
+                local effDef = nil
+                if eff.kind == "blessing" then
+                    effDef = DayvinhoBlessings_Blessings.getDef(eff.id)
+                elseif eff.kind == "curse" then
+                    effDef = DayvinhoBlessings_Curses.getDef(eff.id)
+                end
                 results[#results + 1] = {
-                    id        = eff.id,
-                    isCurse   = eff.kind == "curse",
-                    timerText = string.format("%d:%02d", mins, secs),
-                    remaining = remaining,
-                    isExpired = false,
+                    id          = eff.id,
+                    isCurse     = eff.kind == "curse",
+                    timerText   = string.format("%d:%02d", mins, secs),
+                    remaining   = remaining,
+                    isExpired   = false,
+                    displayName = effDef and effDef.displayName,
+                    description = effDef and effDef.description,
                 }
             end
         end

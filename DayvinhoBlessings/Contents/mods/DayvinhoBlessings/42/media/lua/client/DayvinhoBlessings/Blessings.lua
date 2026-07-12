@@ -42,15 +42,6 @@ local GIFT_ITEMS = {
 
 local DEFS = {
 
-    -- -- XP Boost: +100% / +150% via LevelPerk (tratado no Main) --
-    xp_boost = {
-        weight = 15, duration = 1200,  -- 20 min
-        apply = function(player, legendary, data)
-            data.mult = legendary and 1.50 or 1.00
-        end,
-        onRemove = function(player, data) data.mult = 0 end,
-    },
-
     -- -- Sorte: morale boost --
     luck = {
         weight = 8, duration = 1200,  -- 20 min
@@ -373,16 +364,66 @@ do
     for _, def in pairs(DEFS) do _totalWeight = _totalWeight + def.weight end
 end
 
+-- -- Pool dinamico: um xp_boost por habilidade ----------------
+-- Budget total igual ao antigo xp_boost unico (peso 15),
+-- dividido igualmente entre todas as skills do cache.
+
+local _xpBoostDefs        = {}
+local _xpBoostTotalWeight = 0
+local XP_BOOST_BUDGET     = 15
+
+function DayvinhoBlessings_Blessings.buildXPBoostDefs(perkCache)
+    _xpBoostDefs        = {}
+    _xpBoostTotalWeight = 0
+
+    local count = 0
+    for _ in pairs(perkCache) do count = count + 1 end
+    if count == 0 then return end
+
+    local w = XP_BOOST_BUDGET / count
+
+    for typeStr, pe in pairs(perkCache) do
+        local perkName = typeStr
+        pcall(function()
+            local perk = PerkFactory.getPerk(pe)
+            if perk then perkName = perk:getName() or typeStr end
+        end)
+
+        local capturedType = typeStr
+        local capturedName = perkName
+
+        _xpBoostDefs["xp_boost_" .. typeStr] = {
+            weight      = w,
+            duration    = 1200,
+            perkType    = typeStr,
+            perkName    = perkName,
+            displayName = "XP: " .. capturedName,
+            description = "+100% XP em " .. capturedName,
+            apply = function(player, legendary, data)
+                data.mult     = legendary and 1.50 or 1.00
+                data.perkType = capturedType
+            end,
+            onRemove = function(player, data) data.mult = 0 end,
+        }
+        _xpBoostTotalWeight = _xpBoostTotalWeight + w
+    end
+end
+
 function DayvinhoBlessings_Blessings.pickRandom()
-    local roll = ZombRandFloat(0, 1) * _totalWeight
-    local acc  = 0
+    local total = _totalWeight + _xpBoostTotalWeight
+    local roll  = ZombRandFloat(0, 1) * total
+    local acc   = 0
     for id, def in pairs(DEFS) do
         acc = acc + def.weight
         if roll <= acc then return id end
     end
-    return "xp_boost"
+    for id, def in pairs(_xpBoostDefs) do
+        acc = acc + def.weight
+        if roll <= acc then return id end
+    end
+    return "luck"
 end
 
 function DayvinhoBlessings_Blessings.getDef(id)
-    return DEFS[id]
+    return DEFS[id] or _xpBoostDefs[id]
 end

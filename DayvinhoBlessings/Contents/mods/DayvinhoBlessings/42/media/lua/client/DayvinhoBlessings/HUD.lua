@@ -394,12 +394,12 @@ function DayvinhoBlessings_HUDPanel:render()
                 nameStr = info.isCurse and "[ Maldicao Encerrada ]" or "[ Bencao Encerrada ]"
             else
                 local prefix = info.isCurse and "[Maldicao] " or "[Bencao] "
-                nameStr = prefix .. (DISPLAY_NAMES[info.id] or info.id)
+                nameStr = prefix .. (DISPLAY_NAMES[info.id] or info.displayName or info.id)
             end
             self:drawText(trunc(nameStr, textW), 8, ry + 4, nr, ng, nb, 1, UIFont.Small)
 
             -- Linha 2: descricao (truncada, recuada)
-            local desc = DESCRIPTIONS[info.id] or ""
+            local desc = DESCRIPTIONS[info.id] or info.description or ""
             if desc ~= "" then
                 self:drawText(trunc(desc, textW - 4), 12, ry + 20,
                     0.62, 0.62, 0.62, 1, UIFont.Small)
