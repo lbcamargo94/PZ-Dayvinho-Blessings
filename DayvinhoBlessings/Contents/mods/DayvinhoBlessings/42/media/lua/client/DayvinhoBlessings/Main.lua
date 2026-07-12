@@ -24,7 +24,7 @@ DayvinhoBlessings_Main = {}
 -- a"EURa"EUR Constantes a"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EUR
 
 local ITEM_TYPE      = "Base.DayvinhoDeBolso"
-local TIMER_INTERVAL = 1200   -- segundos reais entre cada rolagem (20 min; producao)
+local TIMER_INTERVAL = 600    -- segundos reais entre cada rolagem (10 min)
 local TICK_INTERVAL  = 2      -- segundos entre chamadas onTick dos efeitos
 
 -- a"EURa"EUR Estado global a"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EUR

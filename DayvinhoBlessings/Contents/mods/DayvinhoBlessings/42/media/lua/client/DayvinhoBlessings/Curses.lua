@@ -7,7 +7,7 @@
 --    2. Explicitamente pelo jogador via opA?A?o "Descartar"
 --       no menu de contexto do inventA?rio.
 --
---  11 efeitos possA?veis, duraA?A?o 10 minutos reais (600s)
+--  11 efeitos possA?veis, duraA?A?o 10 minutos reais (600s) -- valor correto
 --
 --  API de stats (B42): CharacterStat enum
 --    getLuck/setLuck (inexistentes) a?' CharacterStat.MORALE
@@ -28,7 +28,7 @@ end
 
 local function clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 
-local CURSE_DURATION = 1200  -- 20 minutos reais
+local CURSE_DURATION = 600   -- 10 minutos reais
 
 -- a"EURa"EUR 9 definiA?A?es de efeito de maldiA?A?o a"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EURa"EUR
 

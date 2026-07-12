@@ -44,7 +44,7 @@ local DEFS = {
 
     -- -- Sorte: morale boost --
     luck = {
-        weight = 8, duration = 1200,  -- 20 min
+        weight = 8, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local prev  = s:get(CharacterStat.MORALE) or 0
@@ -61,7 +61,7 @@ local DEFS = {
 
     -- -- Achado Valioso: morale boost --
     foraging = {
-        weight = 6, duration = 1200,  -- 20 min
+        weight = 6, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local prev  = s:get(CharacterStat.MORALE) or 0
@@ -91,7 +91,7 @@ local DEFS = {
 
     -- -- Barriga Cheia: reduz fome gradualmente --
     full_belly = {
-        weight = 8, duration = 1200,  -- 20 min
+        weight = 8, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             data.rate = legendary and 0.006 or 0.004
         end,
@@ -126,7 +126,7 @@ local DEFS = {
 
     -- -- Espirito Forte: reduz estresse e tedio gradualmente --
     spirit = {
-        weight = 7, duration = 1200,  -- 20 min
+        weight = 7, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             data.rate = legendary and 0.006 or 0.004  -- escala 0-1 para STRESS
             -- BOREDOM usa escala 0-100; rate proporcional
@@ -179,7 +179,7 @@ local DEFS = {
 
     -- -- Maos Habilidosas: endurance boost --
     skilled_hands = {
-        weight = 5, duration = 1200,  -- 20 min
+        weight = 5, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local prev  = s:get(CharacterStat.ENDURANCE) or 0
@@ -199,7 +199,7 @@ local DEFS = {
 
     -- -- Pescador Abencoado: morale boost --
     fisherman = {
-        weight = 4, duration = 1200,  -- 20 min
+        weight = 4, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local prev  = s:get(CharacterStat.MORALE) or 0
@@ -216,7 +216,7 @@ local DEFS = {
 
     -- -- Colheita Feliz: reducao de estresse --
     harvest = {
-        weight = 3, duration = 1200,  -- 20 min
+        weight = 3, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.STRESS) or 0
@@ -226,7 +226,7 @@ local DEFS = {
 
     -- -- Lenhador Sortudo: bonus de endurance --
     lumberjack = {
-        weight = 3, duration = 1200,  -- 20 min
+        weight = 3, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.ENDURANCE) or 0
@@ -236,7 +236,7 @@ local DEFS = {
 
     -- -- Passos Leves: reduz panico --
     light_steps = {
-        weight = 5, duration = 1200,  -- 20 min
+        weight = 5, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.PANIC) or 0
@@ -247,7 +247,7 @@ local DEFS = {
 
     -- -- Olhos Atentos: morale boost --
     sharp_eyes = {
-        weight = 4, duration = 1200,  -- 20 min
+        weight = 4, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local prev  = s:get(CharacterStat.MORALE) or 0
@@ -264,7 +264,7 @@ local DEFS = {
 
     -- -- Instinto de Sobrevivencia: reduz panico --
     instinct = {
-        weight = 3, duration = 1200,  -- 20 min
+        weight = 3, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             local s = stats(player); if not s then return end
             local cur = s:get(CharacterStat.PANIC) or 0
@@ -276,7 +276,7 @@ local DEFS = {
 
     -- -- Mochila Organizada: reduz desconforto gradualmente --
     backpack = {
-        weight = 4, duration = 1200,  -- 20 min
+        weight = 4, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             -- DISCOMFORT usa escala 0-100; rate em pontos absolutos por tick
             data.rate = legendary and 0.6 or 0.4
@@ -292,7 +292,7 @@ local DEFS = {
 
     -- -- Cura Natural: reduz dor gradualmente --
     natural_heal = {
-        weight = 6, duration = 1200,  -- 20 min
+        weight = 6, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             -- PAIN usa escala 0-100; rate em pontos absolutos por tick
             data.rate = legendary and 0.6 or 0.4
@@ -308,7 +308,7 @@ local DEFS = {
 
     -- -- Corpo Resistente: restaura endurance gradualmente --
     resistant = {
-        weight = 6, duration = 1200,  -- 20 min
+        weight = 6, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             data.rate = legendary and 0.006 or 0.004
         end,
@@ -321,7 +321,7 @@ local DEFS = {
 
     -- -- Bencao da Coragem: reduz panico gradualmente --
     courage = {
-        weight = 5, duration = 1200,  -- 20 min
+        weight = 5, duration = 600,  -- 10 min
         apply = function(player, legendary, data)
             -- PANIC usa escala 0-100; rate em pontos absolutos por tick
             data.rate = legendary and 0.6 or 0.4
