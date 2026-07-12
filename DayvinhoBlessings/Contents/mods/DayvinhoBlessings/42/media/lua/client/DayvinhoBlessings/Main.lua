@@ -539,9 +539,10 @@ function DayvinhoBlessings_Main.getHUDInfoAll()
     return #results > 0 and results or nil
 end
 
--- Shift+F9: sorteio forcado para testes (bencao ou maldicao)
+-- Shift+F9: sorteio forcado para testes (apenas com debug ativo)
 local function onKeyPressedTest(key)
     if key ~= Keyboard.KEY_F9 then return end
+    if not getCore():getDebug() then return end
     if not (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) or Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)) then return end
     if not _initialized then return end
     local player = getPlayer()
