@@ -257,3 +257,4 @@ DayvinhoBlessings/
 | `v2.3.3` | Botão do Dayvinho na barra lateral (ISEquippedItem); Shift+F9 restrito ao modo debug |
 | `v2.3.4` | HUD: barra de rolagem totalmente funcional — arrastar o thumb corrigido, direção do scroll por roda do mouse corrigida |
 | `v2.3.5` | Fix: modversion em mod.info atualizado para 2.3.5 |
+| `v2.3.6` | Correções de documentação: spawn 7% (era 2%), contador _spawnCount em memória, workshop.txt com scrollbar drag |
