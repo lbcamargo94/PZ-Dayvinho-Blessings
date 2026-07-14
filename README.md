@@ -190,7 +190,7 @@ DayvinhoBlessings/
             ├── shared/
             │   ├── DayvinhoBlessings/
             │   │   ├── Logger.lua          — logs do mod (INFO/WARN/ERROR/DEBUG)
-            │   │   └── Distributions.lua   — spawn (2%, limite 3 por mapa)
+            │   │   └── Distributions.lua   — spawn (7%, limite 3 por mapa)
             │   └── Translate/
             │       ├── EN/UI.json          — ~120 chaves de mensagem em inglês
             │       └── PTBR/UI.json        — ~120 chaves em português
@@ -214,7 +214,7 @@ DayvinhoBlessings/
 - **XP Boost dinâmico:** Pool de bênçãos de XP gerado em runtime via `Perks.getMaxIndex()` + `Perks.fromIndex()`. Peso total do pool = 15, dividido igualmente entre todas as habilidades válidas. IDs no formato `xp_boost_<PerkType>`.
 - **ISEquippedItem (Sidebar):** Monkey-patch em `initialise`, `onOptionMouseDown` e `prerender`. Textura carregada no `initialise`; tamanho do botão herdado de `self.invBtn`. Compatível com `checkSidebarSizeOption` (recriação ao mudar tamanho da sidebar).
 - **OnFillContainer:** Roda no contexto server. É independente do multiplicador de loot global — dispara uma vez por container na primeira exploração.
-- **getGameModData():** Usado para o contador global de spawns. Persiste com o mundo, disponível em contexto server/shared.
+- **Contador de spawn em memória:** `_spawnCount` (local em `Distributions.lua`). Reinicia ao recarregar o servidor, mas os itens já spawnados persistem no mapa salvo — o limite efetivo de 3 por mundo é mantido na prática.
 
 ---
 
