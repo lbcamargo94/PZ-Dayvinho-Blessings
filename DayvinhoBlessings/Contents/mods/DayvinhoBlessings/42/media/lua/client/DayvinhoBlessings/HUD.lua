@@ -152,11 +152,15 @@ function DayvinhoBlessings_HUDPanel:new(x, y, w)
     o._resizing       = false
     o._locked         = false
     -- cache para onMouseDown/onMouseWheel
-    o._scrollNeeded   = false
-    o._effectStartY   = HEADER_H
-    o._visibleRows    = 1
-    o._maxScroll      = 0
-    o._totalN         = 0
+    o._scrollNeeded        = false
+    o._effectStartY        = HEADER_H
+    o._visibleRows         = 1
+    o._maxScroll           = 0
+    o._totalN              = 0
+    -- drag da barra de rolagem
+    o._scrollDragging      = false
+    o._scrollDragPxAccum   = 0
+    o._scrollDragBaseOffset = 0
     return o
 end
 
@@ -177,16 +181,30 @@ function DayvinhoBlessings_HUDPanel:onMouseDown(x, y)
         return true
     end
 
-    -- Clique no track da barra de rolagem
+    -- Barra de rolagem: thumb drag ou clique no track
     if self._scrollNeeded then
         local trackX = w - SCROLL_W
         local trackY = self._effectStartY
         local trackH = self._visibleRows * ROW_H
         if x >= trackX and y >= trackY and y <= trackY + trackH then
-            local rel   = math.max(0, y - trackY)
-            local ratio = rel / trackH
-            _scrollOffset = math.floor(ratio * self._maxScroll + 0.5)
-            _scrollOffset = math.max(0, math.min(self._maxScroll, _scrollOffset))
+            -- Calcular posicao atual do thumb (mesma formula do render)
+            local thumbH    = math.max(14, math.floor(trackH * self._visibleRows / math.max(1, self._totalN)))
+            local thumbMaxY = math.max(1, trackH - thumbH)
+            local thumbAbsY = trackY + (self._maxScroll > 0
+                and math.floor(thumbMaxY * _scrollOffset / self._maxScroll) or 0)
+
+            if y >= thumbAbsY and y < thumbAbsY + thumbH then
+                -- Clique SOBRE o thumb: inicia drag
+                self._scrollDragging       = true
+                self._scrollDragPxAccum    = 0
+                self._scrollDragBaseOffset = _scrollOffset
+            else
+                -- Clique fora do thumb: salta para posicao clicada
+                local rel = math.max(0, y - trackY)
+                _scrollOffset = math.max(0, math.min(self._maxScroll,
+                    math.floor(rel / trackH * self._maxScroll + 0.5)))
+            end
+            self:setCapture(true)
             return true
         end
     end
@@ -202,11 +220,25 @@ function DayvinhoBlessings_HUDPanel:onMouseDown(x, y)
         self._moving   = true
         self._resizing = false
     end
+    self:setCapture(true)
     return true
 end
 
+local function _applyScrollDrag(self, dy)
+    if not self._scrollDragging or self._maxScroll <= 0 then return end
+    local trackH    = self._visibleRows * ROW_H
+    local thumbH    = math.max(14, math.floor(trackH * self._visibleRows / math.max(1, self._totalN)))
+    local thumbMaxY = math.max(1, trackH - thumbH)
+    self._scrollDragPxAccum = self._scrollDragPxAccum + dy
+    local newOffset = self._scrollDragBaseOffset +
+        math.floor(self._scrollDragPxAccum * self._maxScroll / thumbMaxY + 0.5)
+    _scrollOffset = math.max(0, math.min(self._maxScroll, newOffset))
+end
+
 function DayvinhoBlessings_HUDPanel:onMouseMove(dx, dy)
-    if self._moving then
+    if self._scrollDragging then
+        _applyScrollDrag(self, dy)
+    elseif self._moving then
         self:setX(self:getX() + dx)
         self:setY(self:getY() + dy)
     elseif self._resizing then
@@ -215,7 +247,9 @@ function DayvinhoBlessings_HUDPanel:onMouseMove(dx, dy)
 end
 
 function DayvinhoBlessings_HUDPanel:onMouseMoveOutside(dx, dy)
-    if self._moving then
+    if self._scrollDragging then
+        _applyScrollDrag(self, dy)
+    elseif self._moving then
         self:setX(self:getX() + dx)
         self:setY(self:getY() + dy)
     elseif self._resizing then
@@ -224,26 +258,32 @@ function DayvinhoBlessings_HUDPanel:onMouseMoveOutside(dx, dy)
 end
 
 function DayvinhoBlessings_HUDPanel:onMouseUp(x, y)
+    local wasDragging = self._scrollDragging or self._moving or self._resizing
+    self._scrollDragging = false
     if self._moving or self._resizing then
         self._moving   = false
         self._resizing = false
         self:_saveLayout()
     end
+    if wasDragging then self:setCapture(false) end
 end
 
 function DayvinhoBlessings_HUDPanel:onMouseUpOutside(x, y)
+    local wasDragging = self._scrollDragging or self._moving or self._resizing
+    self._scrollDragging = false
     if self._moving or self._resizing then
         self._moving   = false
         self._resizing = false
         self:_saveLayout()
     end
+    if wasDragging then self:setCapture(false) end
 end
 
 -- Roda do mouse: rolar pelos efeitos
+-- del > 0 = rolar para baixo (ver mais antigos) | del < 0 = rolar para cima (ver mais recentes)
 function DayvinhoBlessings_HUDPanel:onMouseWheel(del)
     if not self._scrollNeeded then return false end
-    -- del > 0 = scroll up (ver mais recentes) | del < 0 = scroll down (ver mais antigos)
-    _scrollOffset = math.max(0, math.min(self._maxScroll, _scrollOffset - del))
+    _scrollOffset = math.max(0, math.min(self._maxScroll, _scrollOffset + del))
     return true
 end
 
