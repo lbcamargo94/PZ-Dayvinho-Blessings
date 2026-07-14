@@ -12,7 +12,7 @@ O item é raro e pode aparecer em **até 3 locais por mapa**. Após atingir esse
 
 | Propriedade | Valor |
 |---|---|
-| Chance por container elegível | **2%** (independente do multiplicador de loot global) |
+| Chance por container elegível | **7%** (independente do multiplicador de loot global) |
 | Limite global por mapa | **3 unidades** |
 
 **Locais de spawn** — cômodos elegíveis:

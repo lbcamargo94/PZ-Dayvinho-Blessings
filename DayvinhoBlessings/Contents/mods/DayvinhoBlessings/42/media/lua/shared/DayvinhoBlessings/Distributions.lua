@@ -1,6 +1,6 @@
 -- ============================================================
 --  Distributions.lua -- Spawn do Dayvinho de Bolso no mundo
---  Raro: ~7% por container elegivel (quartos, lojas)
+--  Raro: 7% por container elegivel (quartos, lojas)
 --  Limite global: no maximo MAX_SPAWNS itens por mundo
 -- ============================================================
 
